@@ -47,22 +47,27 @@ export function calculatePortCost(vessel) {
   //const rate = PORT_RATES.berthDues[vesselType];
 
   // 10GT당 요율
-  const gtUnits = gt / 10;
+  const gtUnits = Math.ceil(gt / 10); //10GT 단위 올림
+  // 현재 접안료 요율 적용 대상 여부
+  const berthApplicable = gt >= 150;
 
   let berthDues = 0;
   let basicDues = 0;
   let extraDues = 0;
+  let extraHours = 0;
 
-  if (berthHours > 0) {
+  if (berthApplicable && berthHours > 0) {
     // 최초 12시간 기본료
     basicDues = gtUnits * rate.basicRate;
 
-    // 12시간 초과분
-    const extraHours = Math.max(0, berthHours - 12);
+    // 12시간 초과분을 1시간 단위로 올림
+    extraHours = Math.ceil(Math.max(0, berthHours - 12));
 
+    // 초과사용료
     extraDues = gtUnits * extraHours * rate.extraRate;
 
-    berthDues = basicDues + extraDues;
+    // 접안료 합산 후 원 미만 절사 (임시 정책)
+    berthDues = Math.trunc(basicDues + extraDues);
   }
 
   // 3. 총 예상항비
@@ -73,8 +78,11 @@ export function calculatePortCost(vessel) {
     berthDues,
     basicDues,
     extraDues,
+    berthHours,
+    extraHours,
     pilotage,
     tugboat,
     total,
+    berthApplicable,
   };
 }

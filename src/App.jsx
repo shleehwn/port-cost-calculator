@@ -41,6 +41,19 @@ function App() {
   };
 
   const berthHours = calculateBerthingHours(vessel.etb, vessel.etd);
+  // 접안시간을 시간과 분으로 표시
+  const formatBerthingTime = (hours) => {
+    if (hours === "" || !Number.isFinite(hours)) {
+      return "";
+    }
+
+    const totalMinutes = Math.round(hours * 60);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+
+    return `${h}시간 ${m}분`;
+  };
+
   // 항비 계산
   const handleCalculate = () => {
     if (!vessel.vesselName.trim()) {
@@ -73,7 +86,7 @@ function App() {
 
   // 금액 표시 함수
   const formatKRW = (amount) => {
-    return `₩ ${amount.toLocaleString("ko-KR")}`;
+    return `₩ ${Math.trunc(amount).toLocaleString("ko-KR")}`;
   };
 
   return (
@@ -222,8 +235,8 @@ function App() {
                 Berthing Hours(Auto Calculated)
               </label>
               <input
-                type="number"
-                value={berthHours}
+                type="text"
+                value={formatBerthingTime(berthHours)}
                 readOnly
                 className="w-full rounded border bg-gray-100 p-3"
               />
@@ -276,18 +289,51 @@ function App() {
             <h2 className="mb-4 text-xl font-bold text-blue-900">
               3. Estimated Port Charges
             </h2>
+            {/* 입출항료 */}
+            <div className="flex justify-between border-b py-3">
+              <span>Port Dues (입출항료)</span>
+              <span className="font-medium">{formatKRW(result.portDues)}</span>
+            </div>
 
-            {[
-              ["Port Dues (입출항료)", result.portDues],
-              ["Berth Dues (접안료)", result.berthDues],
-              ["Pilotage (도선료)", result.pilotage],
-              ["Tugboat (예선료)", result.tugboat],
-            ].map(([label, amount]) => (
-              <div key={label} className="flex justify-between border-b py-3">
-                <span>{label}</span>
-                <span className="font-medium">{formatKRW(amount)}</span>
-              </div>
-            ))}
+            {/* 접안료 합계 */}
+            <div className="flex justify-between pt-3 pb-2">
+              <span className="font-medium">Berth Dues (접안료)</span>
+              <span className="font-medium">{formatKRW(result.berthDues)}</span>
+            </div>
+
+            {/* 접안료 상세 내역 */}
+            <div className="border-b pb-3 pl-4 text-sm text-gray-500">
+              {result.berthApplicable ? (
+                <>
+                  <div className="flex justify-between py-1">
+                    <span>└ Basic Dues (기본료 / 최초 12시간)</span>
+                    <span>{formatKRW(result.basicDues)}</span>
+                  </div>
+
+                  <div className="flex justify-between py-1">
+                    <span>└ Extra Dues (초과료 / {result.extraHours}시간)</span>
+                    <span>{formatKRW(result.extraDues)}</span>
+                  </div>
+                </>
+              ) : (
+                <p className="py-2 text-amber-700">
+                  ※ 150GT 미만 선박은 현재 등록된 접안료 요율의 적용 대상이
+                  아닙니다. 별도 요율 및 적용 규정 확인이 필요합니다.
+                </p>
+              )}
+            </div>
+
+            {/* 도선료 */}
+            <div className="flex justify-between border-b py-3">
+              <span>Pilotage (도선료)</span>
+              <span className="font-medium">{formatKRW(result.pilotage)}</span>
+            </div>
+
+            {/* 예선료 */}
+            <div className="flex justify-between border-b py-3">
+              <span>Tugboat (예선료)</span>
+              <span className="font-medium">{formatKRW(result.tugboat)}</span>
+            </div>
 
             <div className="mt-5 flex flex-wrap justify-between gap-2 text-xl font-bold">
               <span>Total Estimated Cost</span>
@@ -296,8 +342,6 @@ function App() {
 
             <p className="mt-5 text-xs text-gray-500">
               ※ 제공된 항만시설 사용료 요율표를 기준으로 계산한 예상 금액입니다.
-              실제 청구 금액은 적용 규정, 단수 처리 및 감면 조건에 따라 달라질
-              수 있습니다.
             </p>
           </div>
         )}
