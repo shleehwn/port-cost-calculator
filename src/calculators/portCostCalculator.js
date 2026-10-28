@@ -3,8 +3,10 @@ import { PORT_RATES } from "../data/portRates";
  * Port Cost Calculator
  *
  * 주의:
- * - 실제 청구에 필요한 단수 처리 및 감면 규정은 미반영
- * - 접안료 (나) 기타 선박은 계산 대상에서 제외
+ * - 예상항비 산정용 계산기
+ * - 접안료 GT 및 시간 단수 처리 적용
+ * - 기타 선박 접안료는 1개월 이하 사용 기준으로 계산
+ * - 감면 및 기타 실제 청구 조건은 미반영
  */
 
 export function calculatePortCost(vessel) {
@@ -16,6 +18,7 @@ export function calculatePortCost(vessel) {
 
   const vesselType = vessel.vesselType || "OCEAN";
   const rates = PORT_RATES[vessel.port];
+  const vesselCategory = vessel.vesselCategory || "GENERAL";
 
   // 입력값 검증
   const values = [gt, portCalls, berthHours, pilotage, tugboat];
@@ -39,35 +42,50 @@ export function calculatePortCost(vessel) {
     throw new Error("해당 항만의 요율 정보가 없습니다.");
   }
 
+  if (!["GENERAL", "HARBOR", "PASSENGER"].includes(vesselCategory)) {
+    throw new Error("선박 용도를 확인해 주세요.");
+  }
+
   // 1. 선박입출항료
   const portDues = gt * rates.portDuesPerGt * portCalls;
 
   // 2. 접안료
-  const rate = rates.berthDues[vesselType];
-  //const rate = PORT_RATES.berthDues[vesselType];
 
-  // 10GT당 요율
-  const gtUnits = Math.ceil(gt / 10); //10GT 단위 올림
-  // 현재 접안료 요율 적용 대상 여부
-  const berthApplicable = gt >= 150;
+  const berthType =
+    vesselCategory === "GENERAL" && gt >= 150 ? "STANDARD" : "OTHER";
 
   let berthDues = 0;
   let basicDues = 0;
   let extraDues = 0;
   let extraHours = 0;
 
-  if (berthApplicable && berthHours > 0) {
-    // 최초 12시간 기본료
-    basicDues = gtUnits * rate.basicRate;
+  //if (berthApplicable && berthHours > 0) {
 
-    // 12시간 초과분을 1시간 단위로 올림
-    extraHours = Math.ceil(Math.max(0, berthHours - 12));
+  if (berthType === "STANDARD") {
+    // 일반 선박 접안료
+    const rate = rates.berthDues[vesselType];
+    const gtUnits = Math.ceil(gt / 10);
 
-    // 초과사용료
-    extraDues = gtUnits * extraHours * rate.extraRate;
+    if (berthHours > 0) {
+      basicDues = gtUnits * rate.basicRate;
+      extraHours = Math.ceil(Math.max(0, berthHours - 12));
+      extraDues = gtUnits * extraHours * rate.extraRate;
 
-    // 접안료 합산 후 원 미만 절사 (임시 정책)
-    berthDues = Math.trunc(basicDues + extraDues);
+      berthDues = Math.trunc(basicDues + extraDues);
+    }
+  } else {
+    // 기타 선박 접안료 (1개월 이하 사용 가정)
+    const otherRate = rates.otherBerthDues[vesselCategory];
+
+    if (otherRate === undefined) {
+      throw new Error("해당 선박 용도의 접안료 요율이 없습니다.");
+    }
+
+    if (berthHours > 0) {
+      const extraGtUnits = Math.max(0, Math.ceil(gt / 50) - 1);
+
+      berthDues = Math.trunc(otherRate + otherRate * 0.5 * extraGtUnits);
+    }
   }
 
   // 3. 총 예상항비
@@ -83,6 +101,6 @@ export function calculatePortCost(vessel) {
     pilotage,
     tugboat,
     total,
-    berthApplicable,
+    berthType,
   };
 }

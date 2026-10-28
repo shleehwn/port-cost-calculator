@@ -6,6 +6,7 @@ export const PORT_RATES = {
   INCHEON: {
     portDuesPerGt: 135,
 
+    // 일반 선박 접안료 (10GT 단위)
     berthDues: {
       OCEAN: {
         basicRate: 358,
@@ -15,6 +16,13 @@ export const PORT_RATES = {
         basicRate: 120,
         extraRate: 10,
       },
+    },
+
+    // 기타 선박 접안료 (50GT 이하, 1척·1월 이하 기준)
+    otherBerthDues: {
+      GENERAL: 3691,
+      HARBOR: 6781,
+      PASSENGER: 3913,
     },
   },
 };

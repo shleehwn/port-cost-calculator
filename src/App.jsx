@@ -11,6 +11,7 @@ function App() {
     dwt: "",
     loa: "",
     vesselType: "OCEAN", // 추가
+    vesselCategory: "GENERAL", // 추가
     port: "INCHEON",
     eta: "",
     etb: "",
@@ -126,6 +127,22 @@ function App() {
             >
               <option value="OCEAN">Ocean-going Vessel (외항선)</option>
               <option value="COASTAL">Coastal Vessel (내항선)</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block font-medium">
+              Vessel Category (선박 용도)
+            </label>
+
+            <select
+              name="vesselCategory"
+              value={vessel.vesselCategory}
+              onChange={handleChange}
+              className="w-full rounded border p-3"
+            >
+              <option value="GENERAL">General / Cargo / Tanker</option>
+              <option value="HARBOR">Harbor Operating Vessel</option>
+              <option value="PASSENGER">Coastal Passenger Vessel</option>
             </select>
           </div>
           <div>
@@ -303,7 +320,7 @@ function App() {
 
             {/* 접안료 상세 내역 */}
             <div className="border-b pb-3 pl-4 text-sm text-gray-500">
-              {result.berthApplicable ? (
+              {result.berthType === "STANDARD" ? (
                 <>
                   <div className="flex justify-between py-1">
                     <span>└ Basic Dues (기본료 / 최초 12시간)</span>
@@ -317,8 +334,8 @@ function App() {
                 </>
               ) : (
                 <p className="py-2 text-amber-700">
-                  ※ 150GT 미만 선박은 현재 등록된 접안료 요율의 적용 대상이
-                  아닙니다. 별도 요율 및 적용 규정 확인이 필요합니다.
+                  ※ 기타 선박 접안료가 적용되었습니다. (50GT 기준, 1개월 이하
+                  사용 가정)
                 </p>
               )}
             </div>
