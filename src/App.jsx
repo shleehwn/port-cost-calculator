@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { calculatePortCost } from "./calculators/portCostCalculator";
 import { formatDateTime, calculateBerthingHours } from "./utils/dateUtils";
+import { PILOTAGE_RATES } from "./data/pilotageRates";
+import { calculateRoundTripPilotage } from "./calculators/pilotageCalculator";
 
 function App() {
   // 선박 정보 및 항비 입력값
@@ -18,12 +20,18 @@ function App() {
     etd: "",
     portCalls: "2",
     berthHours: "",
+
+    // 도선료 계산용 신규 속성
+    pilotageRoute: "",
+    arrivalDraft: "",
+    departureDraft: "",
     pilotage: "",
     tugboat: "",
   });
 
   // 계산 결과
   const [result, setResult] = useState(null);
+  const [pilotageResult, setPilotageResult] = useState(null);
 
   // 입력값 공통 변경 함수
   const handleChange = (e) => {
@@ -36,9 +44,12 @@ function App() {
     setVessel((prev) => ({
       ...prev,
       [name]: newValue,
+      // 항만 변경 시 기존 도선 구간 초기화
+      ...(name === "port" ? { pilotageRoute: "" } : {}),
     }));
 
     setResult(null);
+    setPilotageResult(null);
   };
 
   const berthHours = calculateBerthingHours(vessel.etb, vessel.etd);
@@ -73,15 +84,23 @@ function App() {
     }
 
     try {
-      const calculated = calculatePortCost({
+      const portCostResult = calculatePortCost({
         ...vessel,
         berthHours,
       });
 
-      setResult(calculated);
+      let newPilotageResult = null;
+
+      if (vessel.pilotageRoute) {
+        newPilotageResult = calculateRoundTripPilotage(vessel);
+      }
+
+      setResult(portCostResult);
+      setPilotageResult(newPilotageResult);
     } catch (error) {
       alert(error.message);
       setResult(null);
+      setPilotageResult(null);
     }
   };
 
@@ -157,6 +176,61 @@ function App() {
               <option value="PYEONGTAEK">Pyeongtaek</option>
               <option value="DANGJIN">Dangjin</option>
             </select>
+          </div>
+          <div>
+            <label className="mb-1 block font-medium">
+              Pilotage Route (도선 구간)
+            </label>
+
+            <select
+              name="pilotageRoute"
+              value={vessel.pilotageRoute}
+              onChange={handleChange}
+              className="w-full rounded border p-3"
+            >
+              <option value="">Select Pilotage Route</option>
+
+              {Object.entries(PILOTAGE_RATES[vessel.port]?.routes || {}).map(
+                ([routeCode, routeInfo]) => (
+                  <option key={routeCode} value={routeCode}>
+                    {routeInfo.name}
+                  </option>
+                ),
+              )}
+            </select>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-1 block font-medium">
+                Arrival Draft (입항 흘수 / m)
+              </label>
+              <input
+                type="number"
+                name="arrivalDraft"
+                value={vessel.arrivalDraft}
+                onChange={handleChange}
+                step="0.1"
+                min="0"
+                placeholder="예: 10.5"
+                className="w-full rounded border p-3"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block font-medium">
+                Departure Draft (출항 흘수 / m)
+              </label>
+              <input
+                type="number"
+                name="departureDraft"
+                value={vessel.departureDraft}
+                onChange={handleChange}
+                step="0.1"
+                min="0"
+                placeholder="예: 6.2"
+                className="w-full rounded border p-3"
+              />
+            </div>
           </div>
 
           {[
@@ -359,6 +433,36 @@ function App() {
 
             <p className="mt-5 text-xs text-gray-500">
               ※ 제공된 항만시설 사용료 요율표를 기준으로 계산한 예상 금액입니다.
+            </p>
+          </div>
+        )}
+        {pilotageResult && (
+          <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-5">
+            <h3 className="mb-4 text-lg font-bold">
+              Pilotage Calculation (도선료 기본 산식)
+            </h3>
+
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Arrival Pilotage (입항 도선료)</span>
+                <span>{formatKRW(pilotageResult.arrival.pilotageFee)}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span>Departure Pilotage (출항 도선료)</span>
+                <span>{formatKRW(pilotageResult.departure.pilotageFee)}</span>
+              </div>
+
+              <div className="border-t pt-3 font-bold flex justify-between">
+                <span>Round Trip Pilotage (왕복 소계)</span>
+                <span>{formatKRW(pilotageResult.totalPilotageFee)}</span>
+              </div>
+            </div>
+
+            <p className="mt-4 text-sm text-gray-600">
+              ※ 기본 산식 및 최저 도선료(1회당 270,000원)를 적용한 임시 계산
+              결과입니다. 접·이안 가산, 야간·휴일 할증 및 도선선료는 포함되지
+              않았으며, 기존 최종 항비 합계에도 반영되지 않습니다.
             </p>
           </div>
         )}
