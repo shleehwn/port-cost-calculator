@@ -11,6 +11,8 @@
 export const PILOTAGE_RATES = {
   INCHEON: {
     portName: "Incheon Port",
+    // 접·이안 가산료 산정에 사용하는 항내이동 구간
+    harborMovementRoute: "INNER_MOVEMENT",
 
     routes: {
       PALMI_ANCHORAGE: {

@@ -114,3 +114,114 @@ export function calculateRoundTripPilotage(vessel) {
     totalPilotageFee: arrival.pilotageFee + departure.pilotageFee,
   };
 }
+
+// 접·이안 가산료 계산
+export function calculateBerthingSurcharge({ port, grt, draft }) {
+  const portRates = PILOTAGE_RATES[port];
+
+  if (!portRates) {
+    throw new Error("해당 항만의 도선료 요율이 없습니다.");
+  }
+
+  const movementRoute = portRates.harborMovementRoute;
+
+  if (!movementRoute) {
+    throw new Error("항내이동 도선 구간이 설정되지 않았습니다.");
+  }
+
+  // 기존 도선료 계산 함수를 재사용
+  const movementResult = calculatePilotage({
+    port,
+    route: movementRoute,
+    grt,
+    draft,
+  });
+
+  // 항내이동요금의 30%
+  const surcharge = Math.trunc(movementResult.subtotal * 0.3);
+
+  return {
+    movementFee: movementResult.subtotal,
+    surcharge,
+  };
+}
+// 입항 접안 / 출항 이안 가산료 계산
+export function calculateRoundTripBerthingSurcharge(vessel) {
+  const {
+    port,
+    grt,
+    arrivalDraft,
+    departureDraft,
+    arrivalBerthing = true,
+    departureUnberthing = true,
+  } = vessel;
+
+  // 입항 접안 가산료
+  const arrival = arrivalBerthing
+    ? calculateBerthingSurcharge({
+        port,
+        grt,
+        draft: arrivalDraft,
+      })
+    : { movementFee: 0, surcharge: 0 };
+
+  // 출항 이안 가산료
+  const departure = departureUnberthing
+    ? calculateBerthingSurcharge({
+        port,
+        grt,
+        draft: departureDraft,
+      })
+    : { movementFee: 0, surcharge: 0 };
+
+  return {
+    arrival,
+    departure,
+    totalSurcharge: arrival.surcharge + departure.surcharge,
+  };
+}
+
+// 가산료 및 할인 반영 후 최저 도선료 적용
+export function calculateFinalPilotageFee({
+  basicPilotage,
+  berthingSurcharge = 0,
+  otherSurcharges = 0,
+  discounts = 0,
+  minimumFee = 270000,
+}) {
+  const calculatedFee =
+    basicPilotage + berthingSurcharge + otherSurcharges - discounts;
+
+  const finalFee = Math.max(calculatedFee, minimumFee);
+
+  return {
+    calculatedFee,
+    minimumFee,
+    finalFee: Math.trunc(finalFee),
+  };
+}
+export function calculateFinalRoundTripPilotage(vessel) {
+  // 기존 입항·출항 기본 도선료
+  const pilotage = calculateRoundTripPilotage(vessel);
+
+  // 기존 접·이안 가산료
+  const berthing = calculateRoundTripBerthingSurcharge(vessel);
+
+  // 입항 최종 도선료
+  const arrival = calculateFinalPilotageFee({
+    basicPilotage: pilotage.arrival.subtotal,
+    berthingSurcharge: berthing.arrival.surcharge,
+  });
+
+  // 출항 최종 도선료
+  const departure = calculateFinalPilotageFee({
+    basicPilotage: pilotage.departure.subtotal,
+    berthingSurcharge: berthing.departure.surcharge,
+  });
+
+  return {
+    arrival,
+    departure,
+    totalFinalPilotageFee: arrival.finalFee + departure.finalFee,
+  };
+}

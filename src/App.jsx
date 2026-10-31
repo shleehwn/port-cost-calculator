@@ -3,6 +3,8 @@ import { calculatePortCost } from "./calculators/portCostCalculator";
 import { formatDateTime, calculateBerthingHours } from "./utils/dateUtils";
 import { PILOTAGE_RATES } from "./data/pilotageRates";
 import { calculateRoundTripPilotage } from "./calculators/pilotageCalculator";
+import { calculateRoundTripBerthingSurcharge } from "./calculators/pilotageCalculator";
+import { calculateFinalRoundTripPilotage } from "./calculators/pilotageCalculator";
 
 function App() {
   // 선박 정보 및 항비 입력값
@@ -25,6 +27,11 @@ function App() {
     pilotageRoute: "",
     arrivalDraft: "",
     departureDraft: "",
+
+    // 접안·이안 가산 적용 여부
+    arrivalBerthing: true,
+    departureUnberthing: true,
+
     pilotage: "",
     tugboat: "",
   });
@@ -32,24 +39,30 @@ function App() {
   // 계산 결과
   const [result, setResult] = useState(null);
   const [pilotageResult, setPilotageResult] = useState(null);
+  const [berthingSurchargeResult, setBerthingSurchargeResult] = useState(null);
+  const [finalPilotageResult, setFinalPilotageResult] = useState(null);
 
   // 입력값 공통 변경 함수
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
 
-    const newValue = ["eta", "etb", "etd"].includes(name)
-      ? formatDateTime(value)
-      : value;
+    const newValue =
+      type === "checkbox"
+        ? checked
+        : ["eta", "etb", "etd"].includes(name)
+          ? formatDateTime(value)
+          : value;
 
     setVessel((prev) => ({
       ...prev,
       [name]: newValue,
-      // 항만 변경 시 기존 도선 구간 초기화
       ...(name === "port" ? { pilotageRoute: "" } : {}),
     }));
 
     setResult(null);
     setPilotageResult(null);
+    setBerthingSurchargeResult(null);
+    setFinalPilotageResult(null); // 추가
   };
 
   const berthHours = calculateBerthingHours(vessel.etb, vessel.etd);
@@ -90,17 +103,27 @@ function App() {
       });
 
       let newPilotageResult = null;
+      let newBerthingSurchargeResult = null;
+      let newFinalPilotageResult = null;
 
       if (vessel.pilotageRoute) {
         newPilotageResult = calculateRoundTripPilotage(vessel);
+        newFinalPilotageResult = calculateFinalRoundTripPilotage(vessel);
+
+        newBerthingSurchargeResult =
+          calculateRoundTripBerthingSurcharge(vessel);
       }
 
       setResult(portCostResult);
       setPilotageResult(newPilotageResult);
+      setBerthingSurchargeResult(newBerthingSurchargeResult);
+      setFinalPilotageResult(newFinalPilotageResult);
     } catch (error) {
       alert(error.message);
       setResult(null);
       setPilotageResult(null);
+      setBerthingSurchargeResult(null);
+      setFinalPilotageResult(null); // 추가
     }
   };
 
@@ -231,6 +254,29 @@ function App() {
                 className="w-full rounded border p-3"
               />
             </div>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:col-span-2 md:grid-cols-2">
+            <label className="flex items-center gap-3 rounded border p-3">
+              <input
+                type="checkbox"
+                name="arrivalBerthing"
+                checked={vessel.arrivalBerthing}
+                onChange={handleChange}
+                className="h-5 w-5"
+              />
+              <span>Arrival Berthing (입항 접안)</span>
+            </label>
+
+            <label className="flex items-center gap-3 rounded border p-3">
+              <input
+                type="checkbox"
+                name="departureUnberthing"
+                checked={vessel.departureUnberthing}
+                onChange={handleChange}
+                className="h-5 w-5"
+              />
+              <span>Departure Unberthing (출항 이안)</span>
+            </label>
           </div>
 
           {[
@@ -463,6 +509,69 @@ function App() {
               ※ 기본 산식 및 최저 도선료(1회당 270,000원)를 적용한 임시 계산
               결과입니다. 접·이안 가산, 야간·휴일 할증 및 도선선료는 포함되지
               않았으며, 기존 최종 항비 합계에도 반영되지 않습니다.
+            </p>
+          </div>
+        )}
+        {berthingSurchargeResult && (
+          <div className="mt-4 rounded-lg border p-5">
+            <h3 className="mb-4 text-lg font-bold">
+              Berthing / Unberthing Surcharge (접·이안 가산료)
+            </h3>
+
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Arrival Berthing (입항 접안)</span>
+                <span>
+                  {formatKRW(berthingSurchargeResult.arrival.surcharge)}
+                </span>
+              </div>
+
+              <div className="flex justify-between">
+                <span>Departure Unberthing (출항 이안)</span>
+                <span>
+                  {formatKRW(berthingSurchargeResult.departure.surcharge)}
+                </span>
+              </div>
+
+              <div className="flex justify-between border-t pt-3 font-bold">
+                <span>Total Surcharge (가산료 합계)</span>
+                <span>{formatKRW(berthingSurchargeResult.totalSurcharge)}</span>
+              </div>
+            </div>
+
+            <p className="mt-3 text-sm text-gray-500">
+              ※ 현재 구현한 산식의 임시 계산 결과이며, 최종 항비 합계에는
+              포함되지 않습니다.
+            </p>
+          </div>
+        )}
+        {finalPilotageResult && (
+          <div className="mt-4 rounded-lg border border-blue-300 bg-blue-50 p-5">
+            <h3 className="mb-4 text-lg font-bold">
+              Pilotage Charges Summary (도선료 계산 요약)
+            </h3>
+
+            <div className="flex justify-between py-2">
+              <span>Arrival Pilotage (입항)</span>
+              <span>{formatKRW(finalPilotageResult.arrival.finalFee)}</span>
+            </div>
+
+            <div className="flex justify-between py-2">
+              <span>Departure Pilotage (출항)</span>
+              <span>{formatKRW(finalPilotageResult.departure.finalFee)}</span>
+            </div>
+
+            <div className="flex justify-between border-t pt-3 font-bold">
+              <span>Round Trip Total (왕복 합계)</span>
+              <span>
+                {formatKRW(finalPilotageResult.totalFinalPilotageFee)}
+              </span>
+            </div>
+
+            <p className="mt-3 text-sm text-gray-600">
+              ※ 현재 구현된 기본 도선료와 접·이안 가산료를 합산한 뒤 최저
+              도선료를 적용한 계산 결과입니다. 야간·휴일 할증 등은 아직 포함되지
+              않았으며, 최종 항비 합계에도 반영되지 않았습니다.
             </p>
           </div>
         )}
