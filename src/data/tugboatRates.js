@@ -1,0 +1,31 @@
+/**
+ * 인천항 예선료 기본요율
+ * 2025.05.29 개정 요율표 기준
+ *
+ * OCEAN   : 외항선
+ * COASTAL : 내항선
+ *
+ * 금액 단위: 원
+ * 기본 사용시간: 1시간
+ */
+
+export const TUGBOAT_RATES = {
+  INCHEON: {
+    baseRates: {
+      500: { OCEAN: 248250, COASTAL: 205860 },
+      1000: { OCEAN: 378950, COASTAL: 319490 },
+      1500: { OCEAN: 527210, COASTAL: 447430 },
+      2000: { OCEAN: 678840, COASTAL: 579160 },
+      2500: { OCEAN: 810770, COASTAL: 693290 },
+      3000: { OCEAN: 929440, COASTAL: 797240 },
+      3500: { OCEAN: 1037400, COASTAL: 892510 },
+      4000: { OCEAN: 1154720, COASTAL: 996240 },
+      4500: { OCEAN: 1271300, COASTAL: 1099340 },
+      5000: { OCEAN: 1377010, COASTAL: 1191570 },
+      5500: { OCEAN: 1490720, COASTAL: 1292480 },
+      6000: { OCEAN: 1602570, COASTAL: 1392160 },
+      6500: { OCEAN: 1679570, COASTAL: 1461880 },
+      7000: { OCEAN: 1740310, COASTAL: 1509120 },
+    },
+  },
+};

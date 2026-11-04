@@ -1,0 +1,17 @@
+export const PILOT_BOAT_ROUTE_MAPPING = {
+  INCHEON: {
+    // 팔미도 → 북항
+    PALMI_NORTH_PORT: ["PALMI", "NORTH_PORT"],
+
+    // 팔미도 → 남항
+    PALMI_SOUTH_PORT: ["PALMI", "SOUTH_PORT"],
+    // 추후 매핑 검증 대상
+    // PALMI_ANCHORAGE
+    PALMI_ANCHORAGE: ["PALMI", "ANCHORAGE"],
+    // PALMI_INNER_HARBOR
+    PALMI_INNER_HARBOR: ["PALMI"],
+    // INNER_MOVEMENT
+    // NEW_PORT
+    NEW_PORT: ["NEW_PORT_PILOT_STATION", "INCHEON_NEW_PORT"],
+  },
+};

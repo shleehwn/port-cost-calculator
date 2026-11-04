@@ -200,28 +200,104 @@ export function calculateFinalPilotageFee({
     finalFee: Math.trunc(finalFee),
   };
 }
+
 export function calculateFinalRoundTripPilotage(vessel) {
-  // 기존 입항·출항 기본 도선료
+  // 입항·출항 기본 도선료
   const pilotage = calculateRoundTripPilotage(vessel);
 
-  // 기존 접·이안 가산료
+  // 접·이안 가산료
   const berthing = calculateRoundTripBerthingSurcharge(vessel);
+
+  // 야간·공휴일 할증료
+  const arrivalTime = calculateTimeSurcharge({
+    basicPilotage: pilotage.arrival.subtotal,
+    isNight: vessel.arrivalNight,
+    isHoliday: vessel.arrivalHoliday,
+  });
+
+  const departureTime = calculateTimeSurcharge({
+    basicPilotage: pilotage.departure.subtotal,
+    isNight: vessel.departureNight,
+    isHoliday: vessel.departureHoliday,
+  });
+  // 입항 위험물 할증
+  const arrivalDangerous = calculateDangerousCargoSurcharge({
+    basicPilotage: pilotage.arrival.subtotal,
+    isDangerousCargo: vessel.arrivalDangerousCargo,
+  });
+
+  // 출항 위험물 할증
+  const departureDangerous = calculateDangerousCargoSurcharge({
+    basicPilotage: pilotage.departure.subtotal,
+    isDangerousCargo: vessel.departureDangerousCargo,
+  });
 
   // 입항 최종 도선료
   const arrival = calculateFinalPilotageFee({
     basicPilotage: pilotage.arrival.subtotal,
     berthingSurcharge: berthing.arrival.surcharge,
+    otherSurcharges: arrivalTime.surcharge + arrivalDangerous.surcharge,
   });
 
   // 출항 최종 도선료
   const departure = calculateFinalPilotageFee({
     basicPilotage: pilotage.departure.subtotal,
     berthingSurcharge: berthing.departure.surcharge,
+    otherSurcharges: departureTime.surcharge + departureDangerous.surcharge,
   });
 
   return {
     arrival,
     departure,
+    arrivalTime,
+    departureTime,
+    totalTimeSurcharge: arrivalTime.surcharge + departureTime.surcharge,
     totalFinalPilotageFee: arrival.finalFee + departure.finalFee,
+    arrivalDangerous,
+    departureDangerous,
+    totalDangerousSurcharge:
+      arrivalDangerous.surcharge + departureDangerous.surcharge,
+  };
+}
+// 야간 / 공휴일 도선료 할증 계산
+export function calculateTimeSurcharge({
+  basicPilotage,
+  isNight = false,
+  isHoliday = false,
+}) {
+  const basicFee = Number(basicPilotage);
+
+  if (!Number.isFinite(basicFee) || basicFee < 0) {
+    throw new Error("기본 도선료를 확인해 주세요.");
+  }
+
+  // 공휴일 야간에는 야간 할증만 적용
+  const surchargeRate = isNight ? 0.5 : isHoliday ? 0.3 : 0;
+
+  const surcharge = Math.trunc(basicFee * surchargeRate);
+
+  return {
+    surchargeRate,
+    surcharge,
+  };
+}
+
+// 위험물 할증 계산 (현재 20% 가정)
+export function calculateDangerousCargoSurcharge({
+  basicPilotage,
+  isDangerousCargo = false,
+}) {
+  const basicFee = Number(basicPilotage);
+
+  if (!Number.isFinite(basicFee) || basicFee < 0) {
+    throw new Error("기본 도선료를 확인해 주세요.");
+  }
+
+  const surchargeRate = isDangerousCargo ? 0.2 : 0;
+  const surcharge = Math.trunc(basicFee * surchargeRate);
+
+  return {
+    surchargeRate,
+    surcharge,
   };
 }

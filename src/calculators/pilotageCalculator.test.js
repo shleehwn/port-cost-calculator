@@ -5,8 +5,9 @@ import {
   calculateRoundTripBerthingSurcharge,
   calculateFinalPilotageFee,
   calculateFinalRoundTripPilotage,
+  calculateTimeSurcharge,
+  calculateDangerousCargoSurcharge,
 } from "./pilotageCalculator.js";
-
 // 인천항 북항 도선 테스트
 const result = calculatePilotage({
   port: "INCHEON",
@@ -114,3 +115,98 @@ console.log("\n=== Final Round Trip Pilotage Test ===");
 console.log("입항 최종 도선료:", finalRoundTripTest.arrival.finalFee);
 console.log("출항 최종 도선료:", finalRoundTripTest.departure.finalFee);
 console.log("왕복 최종 도선료:", finalRoundTripTest.totalFinalPilotageFee);
+
+// 야간 / 공휴일 할증 테스트
+const basicPilotage = 868882;
+
+// 일반 주간
+const normalTest = calculateTimeSurcharge({
+  basicPilotage,
+});
+
+// 야간
+const nightTest = calculateTimeSurcharge({
+  basicPilotage,
+  isNight: true,
+});
+
+// 공휴일 주간
+const holidayTest = calculateTimeSurcharge({
+  basicPilotage,
+  isHoliday: true,
+});
+
+// 공휴일 야간
+const holidayNightTest = calculateTimeSurcharge({
+  basicPilotage,
+  isNight: true,
+  isHoliday: true,
+});
+
+console.log("\n=== Time Surcharge Test ===");
+console.log("일반 주간:", normalTest.surcharge);
+console.log("야간:", nightTest.surcharge);
+console.log("공휴일 주간:", holidayTest.surcharge);
+console.log("공휴일 야간:", holidayNightTest.surcharge);
+
+const timeRoundTripTest = calculateFinalRoundTripPilotage({
+  port: "INCHEON",
+  pilotageRoute: "PALMI_NORTH_PORT",
+  grt: 20000,
+  arrivalDraft: 10,
+  departureDraft: 6,
+  arrivalBerthing: true,
+  departureUnberthing: true,
+  arrivalNight: true,
+  arrivalHoliday: false,
+  departureNight: false,
+  departureHoliday: true,
+});
+
+console.log("\n=== Time Surcharge Round Trip Test ===");
+console.log("입항 야간 할증료:", timeRoundTripTest.arrivalTime.surcharge);
+console.log("출항 공휴일 할증료:", timeRoundTripTest.departureTime.surcharge);
+console.log("입항 최종 도선료:", timeRoundTripTest.arrival.finalFee);
+console.log("출항 최종 도선료:", timeRoundTripTest.departure.finalFee);
+console.log("왕복 최종 도선료:", timeRoundTripTest.totalFinalPilotageFee);
+
+const dangerousCargoTest = calculateDangerousCargoSurcharge({
+  basicPilotage: 868882,
+  isDangerousCargo: true,
+});
+
+const normalCargoTest = calculateDangerousCargoSurcharge({
+  basicPilotage: 868882,
+  isDangerousCargo: false,
+});
+
+console.log("\n=== Dangerous Cargo Surcharge Test ===");
+console.log("위험물 할증 적용:", dangerousCargoTest.surcharge);
+console.log("위험물 할증 미적용:", normalCargoTest.surcharge);
+
+const dangerousRoundTripTest = calculateFinalRoundTripPilotage({
+  port: "INCHEON",
+  pilotageRoute: "PALMI_NORTH_PORT",
+  grt: 20000,
+  arrivalDraft: 10,
+  departureDraft: 6,
+  arrivalBerthing: true,
+  departureUnberthing: true,
+  arrivalNight: false,
+  arrivalHoliday: false,
+  departureNight: false,
+  departureHoliday: false,
+  arrivalDangerousCargo: true,
+  departureDangerousCargo: false,
+});
+
+console.log("\n=== Dangerous Cargo Round Trip Test ===");
+console.log(
+  "입항 위험물 할증:",
+  dangerousRoundTripTest.arrivalDangerous.surcharge,
+);
+console.log(
+  "출항 위험물 할증:",
+  dangerousRoundTripTest.departureDangerous.surcharge,
+);
+console.log("왕복 도선료:", dangerousRoundTripTest.totalFinalPilotageFee);
