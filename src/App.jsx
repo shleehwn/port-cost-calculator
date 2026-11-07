@@ -7,6 +7,15 @@ import { calculateRoundTripBerthingSurcharge } from "./calculators/pilotageCalcu
 import { calculateFinalRoundTripPilotage } from "./calculators/pilotageCalculator";
 import { calculateRoundTripPilotBoatFee } from "./calculators/pilotBoatCalculator.js";
 import { calculateRoundTripTugboatFee } from "./calculators/tugboatCalculator.js";
+import { calculateAnchorageDues } from "./calculators/anchorageCalculator";
+
+function formatAnchorageTime(hours) {
+  const totalMinutes = Math.round(hours * 60);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+
+  return `${h}시간 ${m}분`;
+}
 
 function App() {
   // 선박 정보 및 항비 입력값
@@ -58,6 +67,13 @@ function App() {
   const [finalPilotageResult, setFinalPilotageResult] = useState(null);
   const [pilotBoatResult, setPilotBoatResult] = useState(null);
   const [tugboatResult, setTugboatResult] = useState(null);
+  const [anchorage, setAnchorage] = useState({
+    start: "",
+    end: "",
+    purpose: "GENERAL",
+    hasEdiApproval: false,
+  });
+  const [anchorageResult, setAnchorageResult] = useState(null);
 
   // 결과 화면 탭
   const [activeTab, setActiveTab] = useState("PDA");
@@ -103,10 +119,10 @@ function App() {
 
   // 항비 계산
   const handleCalculate = () => {
-    if (!vessel.vesselName.trim()) {
-      alert("선박명을 입력해 주세요.");
-      return;
-    }
+    // if (!vessel.vesselName.trim()) {
+    //   alert("선박명을 입력해 주세요.");
+    //   return;
+    // }
 
     if (!vessel.grt || Number(vessel.grt) <= 0) {
       alert("GT를 올바르게 입력해 주세요.");
@@ -215,14 +231,58 @@ function App() {
       totalPilotBoatFee +
       totalTugboatFee
     : 0;
+  const handleCalculateAnchorage = () => {
+    try {
+      if (!anchorage.start || !anchorage.end) {
+        alert("정박 시작 및 종료 시간을 입력해주세요.");
+        return;
+      }
+
+      const start = new Date(anchorage.start.replace(" ", "T"));
+      const end = new Date(anchorage.end.replace(" ", "T"));
+
+      if (
+        !Number.isFinite(start.getTime()) ||
+        !Number.isFinite(end.getTime())
+      ) {
+        alert("날짜 형식을 확인해주세요.");
+        return;
+      }
+
+      const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+
+      if (hours <= 0) {
+        alert("정박 종료 시간은 시작 시간보다 늦어야 합니다.");
+        return;
+      }
+
+      const calculated = calculateAnchorageDues({
+        port: vessel.port,
+        vesselType: vessel.vesselType,
+        grt: vessel.grt,
+        anchorageHours: hours,
+        isBunkering: anchorage.purpose === "BUNKERING",
+        hasEdiApproval: anchorage.hasEdiApproval,
+      });
+
+      setAnchorageResult(calculated);
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 px-2 py-4 sm:px-6 sm:py-8">
       <div className="mx-auto w-full min-w-0 max-w-4xl rounded-xl bg-white p-3 shadow-lg sm:p-6">
         {/* 제목 */}
         <h1 className="mb-2 text-2xl font-bold text-blue-900">
-          Port Cost Calculator
+          INCHON, KOREA(KRINC) Port Cost Calculator
         </h1>
         <p className="mb-8 text-gray-500">선박 예상항비 계산 시스템</p>
+        <p className="mb-3 text-sm text-gray-500">
+          <span className="font-semibold text-red-500">*</span> Required Fields
+          (필수 입력 항목)
+        </p>
 
         {/* 선박 기본 정보 */}
         <h2 className="mb-4 border-b pb-2 text-lg font-bold text-gray-800">
@@ -230,7 +290,12 @@ function App() {
         </h2>
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <div>
-            <label className="mb-1 block font-medium">Vessel Name</label>
+            <label className="mb-1 block font-medium">
+              Vessel Name
+              <span className="ml-2 text-sm font-normal text-gray-400">
+                (Optional)
+              </span>
+            </label>
             <input
               type="text"
               name="vesselName"
@@ -276,7 +341,10 @@ function App() {
             ["loa", "LOA (Length Overall, m)"],
           ].map(([name, label]) => (
             <div key={name}>
-              <label className="mb-1 block font-medium">{label}</label>
+              <label className="mb-1 block font-medium">
+                {label}
+                {name === "grt" && <span className="ml-1 text-red-500">*</span>}
+              </label>
               <input
                 type="number"
                 min="0"
@@ -296,7 +364,9 @@ function App() {
         </h2>
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <div>
-            <label className="mb-1 block font-medium">Port</label>
+            <label className="mb-1 block font-medium">
+              Port <span className="ml-1 text-red-500">*</span>
+            </label>
             <select
               name="port"
               value={vessel.port}
@@ -310,7 +380,7 @@ function App() {
           </div>
           <div>
             <label className="mb-1 block font-medium">
-              Pilotage Route (도선 구간)
+              Pilotage Route (도선 구간){" "}
             </label>
 
             <select
@@ -347,7 +417,8 @@ function App() {
           </div>
           <div>
             <label className="mb-1 block font-medium">
-              ETB (Estimated Time of Berthing)
+              ETB (Estimated Time of Berthing){" "}
+              <span className="ml-1 text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -362,7 +433,8 @@ function App() {
           </div>
           <div>
             <label className="mb-1 block font-medium">
-              ETD (Estimated Time of Departure)
+              ETD (Estimated Time of Departure){" "}
+              <span className="ml-1 text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -376,7 +448,9 @@ function App() {
             />
           </div>
           <div>
-            <label className="mb-1 block font-medium">Port Calls</label>
+            <label className="mb-1 block font-medium">
+              Port Calls <span className="ml-1 text-red-500">*</span>
+            </label>
             <select
               name="portCalls"
               value={vessel.portCalls}
@@ -623,7 +697,7 @@ function App() {
         </details>
 
         {/* 수동 요금 입력 (자동 계산 불가 시 보조 입력) */}
-        <details className="mt-6 rounded-lg border border-gray-300 bg-slate-50 p-4">
+        {/* <details className="mt-6 rounded-lg border border-gray-300 bg-slate-50 p-4">
           <summary className="cursor-pointer font-semibold text-blue-900">
             Manual Charges (수동 요금 입력)
           </summary>
@@ -662,7 +736,7 @@ function App() {
             ※ 도선구간을 선택하여 자동 계산한 경우 해당 자동 계산 금액이 우선
             적용됩니다.
           </p>
-        </details>
+        </details> */}
 
         {/* 계산 버튼 */}
         <button
@@ -674,30 +748,28 @@ function App() {
         </button>
 
         {/* 계산 결과 탭 메뉴 */}
-        {result && (
-          <div className="mt-8 grid grid-cols-2 gap-2 md:grid-cols-4">
-            {[
-              { id: "PDA", label: "PDA Summary" },
-              { id: "PILOTAGE", label: "Pilotage" },
-              { id: "PILOT_BOAT", label: "Pilot Boat" },
-              { id: "TUGBOAT", label: "Tugboat" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`rounded-lg border px-3 py-3 text-sm font-semibold transition-colors ${
-                  activeTab === tab.id
-                    ? "border-blue-900 bg-blue-900 text-white"
-                    : "border-gray-300 bg-white text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        )}
-
+        <div className="mt-8 grid grid-cols-2 gap-2 md:grid-cols-5">
+          {[
+            { id: "PDA", label: "PDA Summary" },
+            { id: "PILOTAGE", label: "Pilotage" },
+            { id: "PILOT_BOAT", label: "Pilot Boat" },
+            { id: "TUGBOAT", label: "Tugboat" },
+            { id: "ANCHORAGE", label: "Anchorage" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`rounded-lg border px-3 py-3 text-sm font-semibold transition-colors ${
+                activeTab === tab.id
+                  ? "border-blue-900 bg-blue-900 text-white"
+                  : "border-gray-300 bg-white text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
         {/* 계산 결과 */}
         {result && activeTab === "PDA" && (
           <div className="mt-8 rounded-lg bg-slate-50 p-5">
@@ -741,21 +813,25 @@ function App() {
             {/* 도선료 */}
             <div className="flex justify-between border-b py-3">
               <span>Pilotage (도선료)</span>
-              <span className="font-medium">{formatKRW(totalPilotageFee)}</span>
+              <span className="font-medium">
+                {vessel.pilotageRoute ? formatKRW(totalPilotageFee) : "미산출"}
+              </span>
             </div>
 
             {/* 도선선료 */}
             <div className="flex justify-between border-b py-3">
               <span>Pilot Boat Fee (도선선료)</span>
               <span className="font-medium">
-                {formatKRW(totalPilotBoatFee)}
+                {vessel.pilotageRoute ? formatKRW(totalPilotBoatFee) : "미산출"}
               </span>
             </div>
 
             {/* 예선료 */}
             <div className="flex justify-between border-b py-3">
               <span>Tugboat (예선료)</span>
-              <span className="font-medium">{formatKRW(totalTugboatFee)}</span>
+              <span className="font-medium">
+                {vessel.pilotageRoute ? formatKRW(totalTugboatFee) : "미산출"}
+              </span>
             </div>
 
             <div className="mt-5 flex flex-wrap justify-between gap-2 text-xl font-bold">
@@ -1068,6 +1144,160 @@ function App() {
               실제 예선 배정 및 사용시간에 따라 최종 요금은 달라질 수 있습니다.
             </p>
           </div>
+        )}
+
+        {/* 정박료 계산 화면 */}
+        {activeTab === "ANCHORAGE" && (
+          <div className="mt-6 rounded-xl border border-blue-300 bg-blue-50 p-5">
+            <h3 className="mb-4 text-xl font-bold text-blue-900">
+              Anchorage Dues Calculator (정박료 계산)
+            </h3>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-1 block font-medium">
+                  Anchorage Start (정박 시작)
+                  <span className="ml-1 text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="start"
+                  value={anchorage.start}
+                  onChange={(e) =>
+                    setAnchorage((prev) => ({
+                      ...prev,
+                      start: formatDateTime(e.target.value),
+                    }))
+                  }
+                  placeholder="YYYY-MM-DD HH:mm"
+                  maxLength={16}
+                  inputMode="numeric"
+                  className="w-full min-w-0 rounded border p-3"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block font-medium">
+                  Anchorage End (정박 종료)
+                  <span className="ml-1 text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="end"
+                  value={anchorage.end}
+                  onChange={(e) =>
+                    setAnchorage((prev) => ({
+                      ...prev,
+                      end: formatDateTime(e.target.value),
+                    }))
+                  }
+                  placeholder="YYYY-MM-DD HH:mm"
+                  maxLength={16}
+                  inputMode="numeric"
+                  className="w-full min-w-0 rounded border p-3"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block font-medium">
+                  Anchorage Purpose (정박 목적)
+                </label>
+                <select
+                  value={anchorage.purpose}
+                  onChange={(e) =>
+                    setAnchorage((prev) => ({
+                      ...prev,
+                      purpose: e.target.value,
+                    }))
+                  }
+                  className="w-full rounded border p-3"
+                >
+                  <option value="GENERAL">General Anchorage (일반 정박)</option>
+                  <option value="BUNKERING">Bunkering Only (급유 목적)</option>
+                </select>
+              </div>
+
+              {anchorage.purpose === "BUNKERING" && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={anchorage.hasEdiApproval}
+                    onChange={(e) =>
+                      setAnchorage((prev) => ({
+                        ...prev,
+                        hasEdiApproval: e.target.checked,
+                      }))
+                    }
+                  />
+                  <label className="font-medium">
+                    EDI Approval (사전 정박지 사용허가)
+                  </label>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        {activeTab === "ANCHORAGE" && (
+          <>
+            <button
+              type="button"
+              onClick={handleCalculateAnchorage}
+              className="mt-5 w-full rounded-lg bg-blue-900 px-4 py-3 font-semibold text-white hover:bg-blue-800"
+            >
+              Calculate Anchorage Dues (정박료 계산)
+            </button>
+
+            {anchorageResult && (
+              <div className="mt-5 rounded-lg border bg-white p-4">
+                <h4 className="mb-4 font-bold">Anchorage Charges Summary</h4>
+
+                <div className="flex justify-between py-2">
+                  <span>Total Anchorage Hours(사용시간)</span>
+                  <span>
+                    {formatAnchorageTime(anchorageResult.anchorageHours)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between py-2">
+                  <span>Basic Dues (최초 12시간)</span>
+                  <span>{formatKRW(anchorageResult.basicFee)}</span>
+                </div>
+
+                <div className="flex justify-between py-2">
+                  <span>
+                    Extra Dues (초과 {anchorageResult.extraHours}시간 적용)
+                  </span>
+                  <span>{formatKRW(anchorageResult.extraFee)}</span>
+                </div>
+                {anchorageResult.isExempt && (
+                  <div className="flex justify-between py-2 text-green-700">
+                    <span>Exemption (벙커링 면제 금액)</span>
+                    <span>- {formatKRW(anchorageResult.normalFee)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between border-t pt-3 font-bold">
+                  <span>Estimated Anchorage Dues</span>
+                  <span className="text-blue-900">
+                    {formatKRW(anchorageResult.anchorageFee)}
+                  </span>
+                </div>
+
+                {anchorageResult.isExempt && (
+                  <p className="mt-3 text-sm text-green-700">
+                    ※ 벙커링 목적 및 사전 EDI 허가에 따른 정박료 면제가
+                    적용되었습니다.
+                  </p>
+                )}
+
+                {anchorageResult.retroactivePortDuesRequired && (
+                  <p className="mt-3 text-sm text-red-600">
+                    ※ 24시간 초과로 면제가 취소되었습니다. 선박입출항료 소급
+                    부과가 필요합니다.
+                  </p>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
