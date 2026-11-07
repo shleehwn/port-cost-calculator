@@ -278,7 +278,7 @@ function App() {
         <h1 className="mb-2 text-2xl font-bold text-blue-900">
           INCHON, KOREA(KRINC) Port Cost Calculator
         </h1>
-        <p className="mb-8 text-gray-500">선박 예상항비 계산 시스템</p>
+        <p className="mb-8 text-gray-500">인천항 선박 예상항비 계산 시스템</p>
         <p className="mb-3 text-sm text-gray-500">
           <span className="font-semibold text-red-500">*</span> Required Fields
           (필수 입력 항목)
@@ -374,8 +374,9 @@ function App() {
               className="w-full rounded border p-3"
             >
               <option value="INCHEON">Incheon</option>
-              <option value="PYEONGTAEK">Pyeongtaek</option>
-              <option value="DANGJIN">Dangjin</option>
+              <option value="OTHER" disabled>
+                Other Ports (Coming Soon)
+              </option>
             </select>
           </div>
           <div>
@@ -770,6 +771,15 @@ function App() {
             </button>
           ))}
         </div>
+        {result && !vessel.pilotageRoute && (
+          <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
+            ※ 도선구간이 선택되지 않아 도선료, 도선선료 및 예선료는 산출되지
+            않았습니다.
+            <br />
+            세부 계산 내역을 확인하려면 Pilotage Route를 선택한 후 다시 계산해
+            주세요.
+          </div>
+        )}
         {/* 계산 결과 */}
         {result && activeTab === "PDA" && (
           <div className="mt-8 rounded-lg bg-slate-50 p-5">
@@ -780,6 +790,13 @@ function App() {
             <div className="flex justify-between border-b py-3">
               <span>Port Dues (입출항료)</span>
               <span className="font-medium">{formatKRW(result.portDues)}</span>
+            </div>
+            {/* 선박보안료 */}
+            <div className="flex justify-between border-b py-3">
+              <span>Vessel Security Fee (선박보안료)</span>
+              <span className="font-medium">
+                {formatKRW(result.vesselSecurityFee)}
+              </span>
             </div>
 
             {/* 접안료 합계 */}
@@ -840,6 +857,11 @@ function App() {
                 {formatKRW(totalEstimatedCost)}
               </span>
             </div>
+            {!vessel.pilotageRoute && (
+              <p className="mt-2 text-sm text-amber-700">
+                ※ 도선료, 도선선료 및 예선료가 제외된 부분 예상항비입니다.
+              </p>
+            )}
 
             <p className="mt-5 text-xs text-gray-500">
               ※ 제공된 항만시설 사용료 요율표를 기준으로 계산한 예상 금액입니다.

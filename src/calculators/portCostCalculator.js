@@ -49,6 +49,9 @@ export function calculatePortCost(vessel) {
   // 1. 선박입출항료
   const portDues = gt * rates.portDuesPerGt * portCalls;
 
+  // 1-1. 선박보안료 (외항선 입항/출항 각각 GT당 5원)
+  const vesselSecurityFee = vesselType === "OCEAN" ? gt * 5 * portCalls : 0;
+
   // 2. 접안료
 
   const berthType =
@@ -89,7 +92,7 @@ export function calculatePortCost(vessel) {
   }
 
   // 3. 총 예상항비
-  const total = portDues + berthDues + pilotage + tugboat;
+  const total = portDues + vesselSecurityFee + berthDues + pilotage + tugboat;
 
   return {
     portDues,
@@ -102,5 +105,6 @@ export function calculatePortCost(vessel) {
     tugboat,
     total,
     berthType,
+    vesselSecurityFee,
   };
 }

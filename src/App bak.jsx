@@ -279,8 +279,9 @@ function App() {
               className="w-full rounded border p-3"
             >
               <option value="INCHEON">Incheon</option>
-              <option value="PYEONGTAEK">Pyeongtaek</option>
-              <option value="DANGJIN">Dangjin</option>
+              <option value="OTHER" disabled>
+                Other Ports (Coming Soon)
+              </option>
             </select>
           </div>
           <div>

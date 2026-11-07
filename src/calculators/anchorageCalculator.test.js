@@ -17,22 +17,22 @@ describe("Anchorage Dues Calculator", () => {
     expect(result.anchorageFee).toBe(561000);
   });
 
-  it("25시간 정박 시 621,762원", () => {
+  it("25시간 정박 시 1,173,300원", () => {
     const result = calculateAnchorageDues({
       ...base,
       anchorageHours: 25,
     });
 
-    expect(result.anchorageFee).toBe(621762);
+    expect(result.anchorageFee).toBe(1173300);
   });
 
-  it("48시간 정박 시 729,264원", () => {
+  it("48시간 정박 시 2,256,600원", () => {
     const result = calculateAnchorageDues({
       ...base,
       anchorageHours: 48,
     });
 
-    expect(result.anchorageFee).toBe(729264);
+    expect(result.anchorageFee).toBe(2256600);
   });
 
   it("벙커링 + EDI 허가 + 24시간 이내면 면제", () => {
@@ -56,7 +56,7 @@ describe("Anchorage Dues Calculator", () => {
     });
 
     expect(result.isExempt).toBe(false);
-    expect(result.anchorageFee).toBe(621762);
+    expect(result.anchorageFee).toBe(1173300);
     expect(result.retroactivePortDuesRequired).toBe(true);
   });
 
@@ -69,6 +69,6 @@ describe("Anchorage Dues Calculator", () => {
     });
 
     expect(result.isExempt).toBe(false);
-    expect(result.anchorageFee).toBe(598392);
+    expect(result.anchorageFee).toBe(937800);
   });
 });
