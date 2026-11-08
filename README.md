@@ -92,3 +92,21 @@ npm run build
 
 
 ```
+
+## Screenshots (화면 미리보기)
+
+### 1. PDA Summary
+
+![PDA Summary](public/screenshots/PDA_summary.png)
+
+### 2. Pilotage Calculation
+
+![Pilotage](public/screenshots/pilotage.png)
+
+### 3. tugboat Dues
+
+![Anchorage](public/screenshots/tugboat.png)
+
+### 4. Vessel Info
+
+![Anchorage](public/screenshots/vessel_info.png)
