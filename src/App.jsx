@@ -8,6 +8,7 @@ import { calculateFinalRoundTripPilotage } from "./calculators/pilotageCalculato
 import { calculateRoundTripPilotBoatFee } from "./calculators/pilotBoatCalculator.js";
 import { calculateRoundTripTugboatFee } from "./calculators/tugboatCalculator.js";
 import { calculateAnchorageDues } from "./calculators/anchorageCalculator";
+import FuelCalculator from "./components/FuelCalculator";
 
 function formatAnchorageTime(hours) {
   const totalMinutes = Math.round(hours * 60);
@@ -75,6 +76,8 @@ function App() {
   });
   const [anchorageResult, setAnchorageResult] = useState(null);
 
+  // 최상위 계산기 선택 탭
+  const [calculatorTab, setCalculatorTab] = useState("PORT");
   // 결과 화면 탭
   const [activeTab, setActiveTab] = useState("PDA");
 
@@ -274,431 +277,466 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-100 px-2 py-4 sm:px-6 sm:py-8">
       <div className="mx-auto w-full min-w-0 max-w-4xl rounded-xl bg-white p-3 shadow-lg sm:p-6">
-        {/* 제목 */}
-        <h1 className="mb-2 text-2xl font-bold text-blue-900">
-          INCHON, KOREA(KRINC) Port Cost Calculator
-        </h1>
-        <p className="mb-8 text-gray-500">인천항 선박 예상항비 계산 시스템</p>
-        <p className="mb-3 text-sm text-gray-500">
-          <span className="font-semibold text-red-500">*</span> Required Fields
-          (필수 입력 항목)
-        </p>
+        {/* 최상위 계산기 선택 탭 */}
+        <div className="mb-8 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setCalculatorTab("PORT")}
+            className={`rounded-lg border p-3 font-semibold ${
+              calculatorTab === "PORT"
+                ? "border-blue-900 bg-blue-900 text-white"
+                : "border-gray-300 bg-white text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            Port Cost Calculator
+          </button>
 
-        {/* 선박 기본 정보 */}
-        <h2 className="mb-4 border-b pb-2 text-lg font-bold text-gray-800">
-          1. Vessel Information
-        </h2>
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <div>
-            <label className="mb-1 block font-medium">
-              Vessel Name
-              <span className="ml-2 text-sm font-normal text-gray-400">
-                (Optional)
-              </span>
-            </label>
-            <input
-              type="text"
-              name="vesselName"
-              value={vessel.vesselName}
-              onChange={handleChange}
-              placeholder="MV OCEAN"
-              className="w-full rounded border p-3"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block font-medium">Vessel Type</label>
-
-            <select
-              name="vesselType"
-              value={vessel.vesselType}
-              onChange={handleChange}
-              className="w-full rounded border p-3"
-            >
-              <option value="OCEAN">Ocean-going Vessel (외항선)</option>
-              <option value="COASTAL">Coastal Vessel (내항선)</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block font-medium">
-              Vessel Category (선박 용도)
-            </label>
-
-            <select
-              name="vesselCategory"
-              value={vessel.vesselCategory}
-              onChange={handleChange}
-              className="w-full rounded border p-3"
-            >
-              <option value="GENERAL">General / Cargo / Tanker</option>
-              <option value="HARBOR">Harbor Operating Vessel</option>
-              <option value="PASSENGER">Coastal Passenger Vessel</option>
-            </select>
-          </div>
-          {[
-            ["grt", "GT (Gross Tonnage)"],
-            ["nrt", "NT (Net Tonnage)"],
-            ["dwt", "DWT (Deadweight)"],
-            ["loa", "LOA (Length Overall, m)"],
-          ].map(([name, label]) => (
-            <div key={name}>
-              <label className="mb-1 block font-medium">
-                {label}
-                {name === "grt" && <span className="ml-1 text-red-500">*</span>}
-              </label>
-              <input
-                type="number"
-                min="0"
-                name={name}
-                value={vessel[name]}
-                onChange={handleChange}
-                placeholder={`Enter ${name.toUpperCase()}`}
-                className="w-full rounded border p-3"
-              />
-            </div>
-          ))}
+          <button
+            type="button"
+            onClick={() => setCalculatorTab("FUEL")}
+            className={`rounded-lg border p-3 font-semibold ${
+              calculatorTab === "FUEL"
+                ? "border-blue-900 bg-blue-900 text-white"
+                : "border-gray-300 bg-white text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            Fuel Estimator
+          </button>
         </div>
 
-        {/* 항만 작업 정보 */}
-        <h2 className="mb-4 mt-8 border-b pb-2 text-lg font-bold text-gray-800">
-          2. Port Operation & Charges
-        </h2>
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <div>
-            <label className="mb-1 block font-medium">
-              Port <span className="ml-1 text-red-500">*</span>
-            </label>
-            <select
-              name="port"
-              value={vessel.port}
-              onChange={handleChange}
-              className="w-full rounded border p-3"
-            >
-              <option value="INCHEON">Incheon</option>
-              <option value="OTHER" disabled>
-                Other Ports (Coming Soon)
-              </option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block font-medium">
-              Pilotage Route (도선 구간){" "}
-            </label>
+        {calculatorTab === "FUEL" && <FuelCalculator />}
 
-            <select
-              name="pilotageRoute"
-              value={vessel.pilotageRoute}
-              onChange={handleChange}
-              className="w-full rounded border p-3"
-            >
-              <option value="">Select Pilotage Route</option>
+        {calculatorTab === "PORT" && (
+          <>
+            {/* 제목 */}
+            <h1 className="mb-2 text-2xl font-bold text-blue-900">
+              INCHON, KOREA(KRINC) Port Cost Calculator
+            </h1>
+            <p className="mb-8 text-gray-500">
+              인천항 선박 예상항비 계산 시스템
+            </p>
+            <p className="mb-3 text-sm text-gray-500">
+              <span className="font-semibold text-red-500">*</span> Required
+              Fields (필수 입력 항목)
+            </p>
 
-              {Object.entries(PILOTAGE_RATES[vessel.port]?.routes || {})
-                .filter(([routeCode]) => routeCode !== "INNER_MOVEMENT")
-                .map(([routeCode, routeInfo]) => (
-                  <option key={routeCode} value={routeCode}>
-                    {routeInfo.name}
-                  </option>
-                ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block font-medium">
-              ETA (Estimated Time of Arrival)
-            </label>
-            <input
-              type="text"
-              name="eta"
-              value={vessel.eta}
-              onChange={handleChange}
-              placeholder="YYYY-MM-DD HH:mm"
-              maxLength={16}
-              inputMode="numeric"
-              className="w-full rounded border p-3"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block font-medium">
-              ETB (Estimated Time of Berthing){" "}
-              <span className="ml-1 text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="etb"
-              value={vessel.etb}
-              onChange={handleChange}
-              placeholder="YYYY-MM-DD HH:mm"
-              maxLength={16}
-              inputMode="numeric"
-              className="w-full rounded border p-3"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block font-medium">
-              ETD (Estimated Time of Departure){" "}
-              <span className="ml-1 text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="etd"
-              value={vessel.etd}
-              onChange={handleChange}
-              placeholder="YYYY-MM-DD HH:mm"
-              maxLength={16}
-              inputMode="numeric"
-              className="w-full rounded border p-3"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block font-medium">
-              Port Calls <span className="ml-1 text-red-500">*</span>
-            </label>
-            <select
-              name="portCalls"
-              value={vessel.portCalls}
-              onChange={handleChange}
-              className="w-full rounded border p-3"
-            >
-              <option value="2">Inbound + Outbound</option>
-              <option value="1">Inbound Only</option>
-              <option value="0">Not Applicable</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1 block font-medium">
-              Berthing Hours(Auto Calculated)
-            </label>
-            <input
-              type="text"
-              value={formatBerthingTime(berthHours)}
-              readOnly
-              className="w-full rounded border bg-gray-100 p-3"
-            />
-          </div>
-        </div>
-
-        {/* 도선료 세부 옵션 */}
-        <details className="mt-6 rounded-lg border border-gray-300 bg-slate-50 p-4">
-          <summary className="cursor-pointer font-semibold text-blue-900">
-            Pilotage Options (도선료 세부 조건)
-          </summary>
-
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <label className="mb-1 block font-medium">
-                Arrival Draft (입항 흘수 / m)
-              </label>
-              <input
-                type="number"
-                name="arrivalDraft"
-                value={vessel.arrivalDraft}
-                onChange={handleChange}
-                step="0.1"
-                min="0"
-                placeholder="예: 10.5"
-                className="w-full rounded border p-3"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block font-medium">
-                Departure Draft (출항 흘수 / m)
-              </label>
-              <input
-                type="number"
-                name="departureDraft"
-                value={vessel.departureDraft}
-                onChange={handleChange}
-                step="0.1"
-                min="0"
-                placeholder="예: 6.2"
-                className="w-full rounded border p-3"
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-4 md:col-span-2 md:grid-cols-2">
-              <label className="flex items-center gap-3 rounded border p-3">
-                <input
-                  type="checkbox"
-                  name="arrivalBerthing"
-                  checked={vessel.arrivalBerthing}
-                  onChange={handleChange}
-                  className="h-5 w-5"
-                />
-                <span>Arrival Berthing (입항 접안)</span>
-              </label>
-
-              <label className="flex items-center gap-3 rounded border p-3">
-                <input
-                  type="checkbox"
-                  name="departureUnberthing"
-                  checked={vessel.departureUnberthing}
-                  onChange={handleChange}
-                  className="h-5 w-5"
-                />
-                <span>Departure Unberthing (출항 이안)</span>
-              </label>
-            </div>
-            {/* 야간·공휴일 할증 조건 */}
-            <div className="grid grid-cols-1 gap-4 md:col-span-2 md:grid-cols-2">
-              {/* 입항 조건 */}
-              <div className="rounded border p-3">
-                <p className="mb-3 font-medium">Arrival (입항)</p>
-
-                <label className="mb-2 flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    name="arrivalNight"
-                    checked={vessel.arrivalNight}
-                    onChange={handleChange}
-                  />
-                  Night Pilotage (야간)
-                </label>
-
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    name="arrivalHoliday"
-                    checked={vessel.arrivalHoliday}
-                    onChange={handleChange}
-                  />
-                  Holiday Pilotage (공휴일)
-                </label>
-              </div>
-
-              {/* 출항 조건 */}
-              <div className="rounded border p-3">
-                <p className="mb-3 font-medium">Departure (출항)</p>
-
-                <label className="mb-2 flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    name="departureNight"
-                    checked={vessel.departureNight}
-                    onChange={handleChange}
-                  />
-                  Night Pilotage (야간)
-                </label>
-
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    name="departureHoliday"
-                    checked={vessel.departureHoliday}
-                    onChange={handleChange}
-                  />
-                  Holiday Pilotage (공휴일)
-                </label>
-              </div>
-            </div>
-            {/* 위험물 할증 적용 여부 */}
-            <div className="grid grid-cols-1 gap-4 md:col-span-2 md:grid-cols-2">
-              <label className="flex items-center gap-3 rounded border p-3">
-                <input
-                  type="checkbox"
-                  name="arrivalDangerousCargo"
-                  checked={vessel.arrivalDangerousCargo}
-                  onChange={handleChange}
-                  className="h-5 w-5"
-                />
-                <span>Arrival Dangerous Cargo (입항 위험물)</span>
-              </label>
-
-              <label className="flex items-center gap-3 rounded border p-3">
-                <input
-                  type="checkbox"
-                  name="departureDangerousCargo"
-                  checked={vessel.departureDangerousCargo}
-                  onChange={handleChange}
-                  className="h-5 w-5"
-                />
-                <span>Departure Dangerous Cargo (출항 위험물)</span>
-              </label>
-            </div>
-          </div>
-        </details>
-
-        {/* 예선 작업시간 입력 */}
-        <details className="mt-6 rounded-lg border border-gray-300 bg-slate-50 p-4">
-          <summary className="cursor-pointer font-semibold text-blue-900">
-            Tugboat Options (예선 작업시간)
-          </summary>
-
-          <div className="mt-4">
+            {/* 선박 기본 정보 */}
+            <h2 className="mb-4 border-b pb-2 text-lg font-bold text-gray-800">
+              1. Vessel Information
+            </h2>
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               <div>
                 <label className="mb-1 block font-medium">
-                  Arrival Berthing Time (입항 접안 / 분)
+                  Vessel Name
+                  <span className="ml-2 text-sm font-normal text-gray-400">
+                    (Optional)
+                  </span>
                 </label>
                 <input
-                  type="number"
-                  name="arrivalTugBerthingMinutes"
-                  value={vessel.arrivalTugBerthingMinutes}
+                  type="text"
+                  name="vesselName"
+                  value={vessel.vesselName}
                   onChange={handleChange}
-                  min="1"
-                  step="1"
+                  placeholder="MV OCEAN"
                   className="w-full rounded border p-3"
                 />
+              </div>
+              <div>
+                <label className="mb-1 block font-medium">Vessel Type</label>
+
+                <select
+                  name="vesselType"
+                  value={vessel.vesselType}
+                  onChange={handleChange}
+                  className="w-full rounded border p-3"
+                >
+                  <option value="OCEAN">Ocean-going Vessel (외항선)</option>
+                  <option value="COASTAL">Coastal Vessel (내항선)</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block font-medium">
+                  Vessel Category (선박 용도)
+                </label>
+
+                <select
+                  name="vesselCategory"
+                  value={vessel.vesselCategory}
+                  onChange={handleChange}
+                  className="w-full rounded border p-3"
+                >
+                  <option value="GENERAL">General / Cargo / Tanker</option>
+                  <option value="HARBOR">Harbor Operating Vessel</option>
+                  <option value="PASSENGER">Coastal Passenger Vessel</option>
+                </select>
+              </div>
+              {[
+                ["grt", "GT (Gross Tonnage)"],
+                ["nrt", "NT (Net Tonnage)"],
+                ["dwt", "DWT (Deadweight)"],
+                ["loa", "LOA (Length Overall, m)"],
+              ].map(([name, label]) => (
+                <div key={name}>
+                  <label className="mb-1 block font-medium">
+                    {label}
+                    {name === "grt" && (
+                      <span className="ml-1 text-red-500">*</span>
+                    )}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    name={name}
+                    value={vessel[name]}
+                    onChange={handleChange}
+                    placeholder={`Enter ${name.toUpperCase()}`}
+                    className="w-full rounded border p-3"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* 항만 작업 정보 */}
+            <h2 className="mb-4 mt-8 border-b pb-2 text-lg font-bold text-gray-800">
+              2. Port Operation & Charges
+            </h2>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <div>
+                <label className="mb-1 block font-medium">
+                  Port <span className="ml-1 text-red-500">*</span>
+                </label>
+                <select
+                  name="port"
+                  value={vessel.port}
+                  onChange={handleChange}
+                  className="w-full rounded border p-3"
+                >
+                  <option value="INCHEON">Incheon</option>
+                  <option value="OTHER" disabled>
+                    Other Ports (Coming Soon)
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block font-medium">
+                  Pilotage Route (도선 구간){" "}
+                </label>
+
+                <select
+                  name="pilotageRoute"
+                  value={vessel.pilotageRoute}
+                  onChange={handleChange}
+                  className="w-full rounded border p-3"
+                >
+                  <option value="">Select Pilotage Route</option>
+
+                  {Object.entries(PILOTAGE_RATES[vessel.port]?.routes || {})
+                    .filter(([routeCode]) => routeCode !== "INNER_MOVEMENT")
+                    .map(([routeCode, routeInfo]) => (
+                      <option key={routeCode} value={routeCode}>
+                        {routeInfo.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block font-medium">
+                  ETA (Estimated Time of Arrival)
+                </label>
+                <input
+                  type="text"
+                  name="eta"
+                  value={vessel.eta}
+                  onChange={handleChange}
+                  placeholder="YYYY-MM-DD HH:mm"
+                  maxLength={16}
+                  inputMode="numeric"
+                  className="w-full rounded border p-3"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block font-medium">
+                  ETB (Estimated Time of Berthing){" "}
+                  <span className="ml-1 text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="etb"
+                  value={vessel.etb}
+                  onChange={handleChange}
+                  placeholder="YYYY-MM-DD HH:mm"
+                  maxLength={16}
+                  inputMode="numeric"
+                  className="w-full rounded border p-3"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block font-medium">
+                  ETD (Estimated Time of Departure){" "}
+                  <span className="ml-1 text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="etd"
+                  value={vessel.etd}
+                  onChange={handleChange}
+                  placeholder="YYYY-MM-DD HH:mm"
+                  maxLength={16}
+                  inputMode="numeric"
+                  className="w-full rounded border p-3"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block font-medium">
+                  Port Calls <span className="ml-1 text-red-500">*</span>
+                </label>
+                <select
+                  name="portCalls"
+                  value={vessel.portCalls}
+                  onChange={handleChange}
+                  className="w-full rounded border p-3"
+                >
+                  <option value="2">Inbound + Outbound</option>
+                  <option value="1">Inbound Only</option>
+                  <option value="0">Not Applicable</option>
+                </select>
               </div>
 
               <div>
                 <label className="mb-1 block font-medium">
-                  Departure Unberthing Time (출항 이안 / 분)
+                  Berthing Hours(Auto Calculated)
                 </label>
                 <input
-                  type="number"
-                  name="departureTugBerthingMinutes"
-                  value={vessel.departureTugBerthingMinutes}
-                  onChange={handleChange}
-                  min="1"
-                  step="1"
-                  className="w-full rounded border p-3"
+                  type="text"
+                  value={formatBerthingTime(berthHours)}
+                  readOnly
+                  className="w-full rounded border bg-gray-100 p-3"
                 />
               </div>
-
-              {vessel.pilotageRoute === "PALMI_INNER_HARBOR" && (
-                <>
-                  <div>
-                    <label className="mb-1 block font-medium">
-                      Arrival Gate Time (입항 갑문 / 분)
-                    </label>
-                    <input
-                      type="number"
-                      name="arrivalTugGateMinutes"
-                      value={vessel.arrivalTugGateMinutes}
-                      onChange={handleChange}
-                      min="1"
-                      step="1"
-                      className="w-full rounded border p-3"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block font-medium">
-                      Departure Gate Time (출항 갑문 / 분)
-                    </label>
-                    <input
-                      type="number"
-                      name="departureTugGateMinutes"
-                      value={vessel.departureTugGateMinutes}
-                      onChange={handleChange}
-                      min="1"
-                      step="1"
-                      className="w-full rounded border p-3"
-                    />
-                  </div>
-                </>
-              )}
             </div>
 
-            <p className="mt-3 text-sm text-gray-500">
-              ※ 예선 사용시간은 예상 작업시간입니다. 실제 배정 및 사용시간에
-              따라 최종 예선료가 달라질 수 있습니다.
-            </p>
-          </div>
-        </details>
+            {/* 도선료 세부 옵션 */}
+            <details className="mt-6 rounded-lg border border-gray-300 bg-slate-50 p-4">
+              <summary className="cursor-pointer font-semibold text-blue-900">
+                Pilotage Options (도선료 세부 조건)
+              </summary>
 
-        {/* 수동 요금 입력 (자동 계산 불가 시 보조 입력) */}
-        {/* <details className="mt-6 rounded-lg border border-gray-300 bg-slate-50 p-4">
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block font-medium">
+                    Arrival Draft (입항 흘수 / m)
+                  </label>
+                  <input
+                    type="number"
+                    name="arrivalDraft"
+                    value={vessel.arrivalDraft}
+                    onChange={handleChange}
+                    step="0.1"
+                    min="0"
+                    placeholder="예: 10.5"
+                    className="w-full rounded border p-3"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block font-medium">
+                    Departure Draft (출항 흘수 / m)
+                  </label>
+                  <input
+                    type="number"
+                    name="departureDraft"
+                    value={vessel.departureDraft}
+                    onChange={handleChange}
+                    step="0.1"
+                    min="0"
+                    placeholder="예: 6.2"
+                    className="w-full rounded border p-3"
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:col-span-2 md:grid-cols-2">
+                  <label className="flex items-center gap-3 rounded border p-3">
+                    <input
+                      type="checkbox"
+                      name="arrivalBerthing"
+                      checked={vessel.arrivalBerthing}
+                      onChange={handleChange}
+                      className="h-5 w-5"
+                    />
+                    <span>Arrival Berthing (입항 접안)</span>
+                  </label>
+
+                  <label className="flex items-center gap-3 rounded border p-3">
+                    <input
+                      type="checkbox"
+                      name="departureUnberthing"
+                      checked={vessel.departureUnberthing}
+                      onChange={handleChange}
+                      className="h-5 w-5"
+                    />
+                    <span>Departure Unberthing (출항 이안)</span>
+                  </label>
+                </div>
+                {/* 야간·공휴일 할증 조건 */}
+                <div className="grid grid-cols-1 gap-4 md:col-span-2 md:grid-cols-2">
+                  {/* 입항 조건 */}
+                  <div className="rounded border p-3">
+                    <p className="mb-3 font-medium">Arrival (입항)</p>
+
+                    <label className="mb-2 flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        name="arrivalNight"
+                        checked={vessel.arrivalNight}
+                        onChange={handleChange}
+                      />
+                      Night Pilotage (야간)
+                    </label>
+
+                    <label className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        name="arrivalHoliday"
+                        checked={vessel.arrivalHoliday}
+                        onChange={handleChange}
+                      />
+                      Holiday Pilotage (공휴일)
+                    </label>
+                  </div>
+
+                  {/* 출항 조건 */}
+                  <div className="rounded border p-3">
+                    <p className="mb-3 font-medium">Departure (출항)</p>
+
+                    <label className="mb-2 flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        name="departureNight"
+                        checked={vessel.departureNight}
+                        onChange={handleChange}
+                      />
+                      Night Pilotage (야간)
+                    </label>
+
+                    <label className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        name="departureHoliday"
+                        checked={vessel.departureHoliday}
+                        onChange={handleChange}
+                      />
+                      Holiday Pilotage (공휴일)
+                    </label>
+                  </div>
+                </div>
+                {/* 위험물 할증 적용 여부 */}
+                <div className="grid grid-cols-1 gap-4 md:col-span-2 md:grid-cols-2">
+                  <label className="flex items-center gap-3 rounded border p-3">
+                    <input
+                      type="checkbox"
+                      name="arrivalDangerousCargo"
+                      checked={vessel.arrivalDangerousCargo}
+                      onChange={handleChange}
+                      className="h-5 w-5"
+                    />
+                    <span>Arrival Dangerous Cargo (입항 위험물)</span>
+                  </label>
+
+                  <label className="flex items-center gap-3 rounded border p-3">
+                    <input
+                      type="checkbox"
+                      name="departureDangerousCargo"
+                      checked={vessel.departureDangerousCargo}
+                      onChange={handleChange}
+                      className="h-5 w-5"
+                    />
+                    <span>Departure Dangerous Cargo (출항 위험물)</span>
+                  </label>
+                </div>
+              </div>
+            </details>
+
+            {/* 예선 작업시간 입력 */}
+            <details className="mt-6 rounded-lg border border-gray-300 bg-slate-50 p-4">
+              <summary className="cursor-pointer font-semibold text-blue-900">
+                Tugboat Options (예선 작업시간)
+              </summary>
+
+              <div className="mt-4">
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block font-medium">
+                      Arrival Berthing Time (입항 접안 / 분)
+                    </label>
+                    <input
+                      type="number"
+                      name="arrivalTugBerthingMinutes"
+                      value={vessel.arrivalTugBerthingMinutes}
+                      onChange={handleChange}
+                      min="1"
+                      step="1"
+                      className="w-full rounded border p-3"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block font-medium">
+                      Departure Unberthing Time (출항 이안 / 분)
+                    </label>
+                    <input
+                      type="number"
+                      name="departureTugBerthingMinutes"
+                      value={vessel.departureTugBerthingMinutes}
+                      onChange={handleChange}
+                      min="1"
+                      step="1"
+                      className="w-full rounded border p-3"
+                    />
+                  </div>
+
+                  {vessel.pilotageRoute === "PALMI_INNER_HARBOR" && (
+                    <>
+                      <div>
+                        <label className="mb-1 block font-medium">
+                          Arrival Gate Time (입항 갑문 / 분)
+                        </label>
+                        <input
+                          type="number"
+                          name="arrivalTugGateMinutes"
+                          value={vessel.arrivalTugGateMinutes}
+                          onChange={handleChange}
+                          min="1"
+                          step="1"
+                          className="w-full rounded border p-3"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-1 block font-medium">
+                          Departure Gate Time (출항 갑문 / 분)
+                        </label>
+                        <input
+                          type="number"
+                          name="departureTugGateMinutes"
+                          value={vessel.departureTugGateMinutes}
+                          onChange={handleChange}
+                          min="1"
+                          step="1"
+                          className="w-full rounded border p-3"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <p className="mt-3 text-sm text-gray-500">
+                  ※ 예선 사용시간은 예상 작업시간입니다. 실제 배정 및 사용시간에
+                  따라 최종 예선료가 달라질 수 있습니다.
+                </p>
+              </div>
+            </details>
+
+            {/* 수동 요금 입력 (자동 계산 불가 시 보조 입력) */}
+            {/* <details className="mt-6 rounded-lg border border-gray-300 bg-slate-50 p-4">
           <summary className="cursor-pointer font-semibold text-blue-900">
             Manual Charges (수동 요금 입력)
           </summary>
@@ -739,585 +777,623 @@ function App() {
           </p>
         </details> */}
 
-        {/* 계산 버튼 */}
-        <button
-          type="button"
-          onClick={handleCalculate}
-          className="mt-8 w-full rounded-lg bg-blue-900 p-3 font-bold text-white hover:bg-blue-800"
-        >
-          Calculate Port Charges
-        </button>
-
-        {/* 계산 결과 탭 메뉴 */}
-        <div className="mt-8 grid grid-cols-2 gap-2 md:grid-cols-5">
-          {[
-            { id: "PDA", label: "PDA Summary" },
-            { id: "PILOTAGE", label: "Pilotage" },
-            { id: "PILOT_BOAT", label: "Pilot Boat" },
-            { id: "TUGBOAT", label: "Tugboat" },
-            { id: "ANCHORAGE", label: "Anchorage" },
-          ].map((tab) => (
+            {/* 계산 버튼 */}
             <button
-              key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`rounded-lg border px-3 py-3 text-sm font-semibold transition-colors ${
-                activeTab === tab.id
-                  ? "border-blue-900 bg-blue-900 text-white"
-                  : "border-gray-300 bg-white text-gray-600 hover:bg-gray-100"
-              }`}
+              onClick={handleCalculate}
+              className="mt-8 w-full rounded-lg bg-blue-900 p-3 font-bold text-white hover:bg-blue-800"
             >
-              {tab.label}
+              Calculate Port Charges
             </button>
-          ))}
-        </div>
-        {result && !vessel.pilotageRoute && (
-          <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
-            ※ 도선구간이 선택되지 않아 도선료, 도선선료 및 예선료는 산출되지
-            않았습니다.
-            <br />
-            세부 계산 내역을 확인하려면 Pilotage Route를 선택한 후 다시 계산해
-            주세요.
-          </div>
-        )}
-        {/* 계산 결과 */}
-        {result && activeTab === "PDA" && (
-          <div className="mt-8 rounded-lg bg-slate-50 p-5">
-            <h2 className="mb-4 text-xl font-bold text-blue-900">
-              3. Estimated Port Charges
-            </h2>
-            {/* 입출항료 */}
-            <div className="flex justify-between border-b py-3">
-              <span>Port Dues (입출항료)</span>
-              <span className="font-medium">{formatKRW(result.portDues)}</span>
-            </div>
-            {/* 선박보안료 */}
-            <div className="flex justify-between border-b py-3">
-              <span>Vessel Security Fee (선박보안료)</span>
-              <span className="font-medium">
-                {formatKRW(result.vesselSecurityFee)}
-              </span>
-            </div>
 
-            {/* 접안료 합계 */}
-            <div className="flex justify-between pt-3 pb-2">
-              <span className="font-medium">Berth Dues (접안료)</span>
-              <span className="font-medium">{formatKRW(result.berthDues)}</span>
+            {/* 계산 결과 탭 메뉴 */}
+            <div className="mt-8 grid grid-cols-2 gap-2 md:grid-cols-5">
+              {[
+                { id: "PDA", label: "PDA Summary" },
+                { id: "PILOTAGE", label: "Pilotage" },
+                { id: "PILOT_BOAT", label: "Pilot Boat" },
+                { id: "TUGBOAT", label: "Tugboat" },
+                { id: "ANCHORAGE", label: "Anchorage" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`rounded-lg border px-3 py-3 text-sm font-semibold transition-colors ${
+                    activeTab === tab.id
+                      ? "border-blue-900 bg-blue-900 text-white"
+                      : "border-gray-300 bg-white text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
+            {result && !vessel.pilotageRoute && (
+              <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
+                ※ 도선구간이 선택되지 않아 도선료, 도선선료 및 예선료는 산출되지
+                않았습니다.
+                <br />
+                세부 계산 내역을 확인하려면 Pilotage Route를 선택한 후 다시
+                계산해 주세요.
+              </div>
+            )}
+            {/* 계산 결과 */}
+            {result && activeTab === "PDA" && (
+              <div className="mt-8 rounded-lg bg-slate-50 p-5">
+                <h2 className="mb-4 text-xl font-bold text-blue-900">
+                  3. Estimated Port Charges
+                </h2>
+                {/* 입출항료 */}
+                <div className="flex justify-between border-b py-3">
+                  <span>Port Dues (입출항료)</span>
+                  <span className="font-medium">
+                    {formatKRW(result.portDues)}
+                  </span>
+                </div>
+                {/* 선박보안료 */}
+                <div className="flex justify-between border-b py-3">
+                  <span>Vessel Security Fee (선박보안료)</span>
+                  <span className="font-medium">
+                    {formatKRW(result.vesselSecurityFee)}
+                  </span>
+                </div>
 
-            {/* 접안료 상세 내역 */}
-            <div className="border-b pb-3 pl-4 text-sm text-gray-500">
-              {result.berthType === "STANDARD" ? (
-                <>
-                  <div className="flex justify-between py-1">
-                    <span>└ Basic Dues (기본료 / 최초 12시간)</span>
-                    <span>{formatKRW(result.basicDues)}</span>
-                  </div>
+                {/* 접안료 합계 */}
+                <div className="flex justify-between pt-3 pb-2">
+                  <span className="font-medium">Berth Dues (접안료)</span>
+                  <span className="font-medium">
+                    {formatKRW(result.berthDues)}
+                  </span>
+                </div>
 
-                  <div className="flex justify-between py-1">
-                    <span>└ Extra Dues (초과료 / {result.extraHours}시간)</span>
-                    <span>{formatKRW(result.extraDues)}</span>
-                  </div>
-                </>
-              ) : (
-                <p className="py-2 text-amber-700">
-                  ※ 기타 선박 접안료가 적용되었습니다. (50GT 기준, 1개월 이하
-                  사용 가정)
+                {/* 접안료 상세 내역 */}
+                <div className="border-b pb-3 pl-4 text-sm text-gray-500">
+                  {result.berthType === "STANDARD" ? (
+                    <>
+                      <div className="flex justify-between py-1">
+                        <span>└ Basic Dues (기본료 / 최초 12시간)</span>
+                        <span>{formatKRW(result.basicDues)}</span>
+                      </div>
+
+                      <div className="flex justify-between py-1">
+                        <span>
+                          └ Extra Dues (초과료 / {result.extraHours}시간)
+                        </span>
+                        <span>{formatKRW(result.extraDues)}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="py-2 text-amber-700">
+                      ※ 기타 선박 접안료가 적용되었습니다. (50GT 기준, 1개월
+                      이하 사용 가정)
+                    </p>
+                  )}
+                </div>
+
+                {/* 도선료 */}
+                <div className="flex justify-between border-b py-3">
+                  <span>Pilotage (도선료)</span>
+                  <span className="font-medium">
+                    {vessel.pilotageRoute
+                      ? formatKRW(totalPilotageFee)
+                      : "미산출"}
+                  </span>
+                </div>
+
+                {/* 도선선료 */}
+                <div className="flex justify-between border-b py-3">
+                  <span>Pilot Boat Fee (도선선료)</span>
+                  <span className="font-medium">
+                    {vessel.pilotageRoute
+                      ? formatKRW(totalPilotBoatFee)
+                      : "미산출"}
+                  </span>
+                </div>
+
+                {/* 예선료 */}
+                <div className="flex justify-between border-b py-3">
+                  <span>Tugboat (예선료)</span>
+                  <span className="font-medium">
+                    {vessel.pilotageRoute
+                      ? formatKRW(totalTugboatFee)
+                      : "미산출"}
+                  </span>
+                </div>
+
+                <div className="mt-5 flex flex-wrap justify-between gap-2 text-xl font-bold">
+                  <span>Total Estimated Cost</span>
+                  <span className="text-blue-900">
+                    {formatKRW(totalEstimatedCost)}
+                  </span>
+                </div>
+                {!vessel.pilotageRoute && (
+                  <p className="mt-2 text-sm text-amber-700">
+                    ※ 도선료, 도선선료 및 예선료가 제외된 부분 예상항비입니다.
+                  </p>
+                )}
+
+                <p className="mt-5 text-xs text-gray-500">
+                  ※ 제공된 항만시설 사용료 요율표를 기준으로 계산한 예상
+                  금액입니다.
                 </p>
-              )}
-            </div>
-
-            {/* 도선료 */}
-            <div className="flex justify-between border-b py-3">
-              <span>Pilotage (도선료)</span>
-              <span className="font-medium">
-                {vessel.pilotageRoute ? formatKRW(totalPilotageFee) : "미산출"}
-              </span>
-            </div>
-
-            {/* 도선선료 */}
-            <div className="flex justify-between border-b py-3">
-              <span>Pilot Boat Fee (도선선료)</span>
-              <span className="font-medium">
-                {vessel.pilotageRoute ? formatKRW(totalPilotBoatFee) : "미산출"}
-              </span>
-            </div>
-
-            {/* 예선료 */}
-            <div className="flex justify-between border-b py-3">
-              <span>Tugboat (예선료)</span>
-              <span className="font-medium">
-                {vessel.pilotageRoute ? formatKRW(totalTugboatFee) : "미산출"}
-              </span>
-            </div>
-
-            <div className="mt-5 flex flex-wrap justify-between gap-2 text-xl font-bold">
-              <span>Total Estimated Cost</span>
-              <span className="text-blue-900">
-                {formatKRW(totalEstimatedCost)}
-              </span>
-            </div>
-            {!vessel.pilotageRoute && (
-              <p className="mt-2 text-sm text-amber-700">
-                ※ 도선료, 도선선료 및 예선료가 제외된 부분 예상항비입니다.
-              </p>
-            )}
-
-            <p className="mt-5 text-xs text-gray-500">
-              ※ 제공된 항만시설 사용료 요율표를 기준으로 계산한 예상 금액입니다.
-            </p>
-          </div>
-        )}
-        {pilotageResult && activeTab === "PILOTAGE" && (
-          <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-5">
-            <h3 className="mb-4 text-lg font-bold">
-              Pilotage Calculation (도선료 기본 산식)
-            </h3>
-
-            <div className="space-y-2">
-              <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-                <span>Arrival Pilotage (입항 도선료)</span>
-                <span className="shrink-0 text-right"></span>
-                <span>{formatKRW(pilotageResult.arrival.pilotageFee)}</span>
-              </div>
-
-              <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-                <span>Departure Pilotage (출항 도선료)</span>
-                <span className="shrink-0 text-right"></span>
-                <span>{formatKRW(pilotageResult.departure.pilotageFee)}</span>
-              </div>
-
-              <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-                <span>Round Trip Pilotage (왕복 소계)</span>
-                <span className="shrink-0 text-right"></span>
-                <span>{formatKRW(pilotageResult.totalPilotageFee)}</span>
-              </div>
-            </div>
-
-            <p className="mt-4 text-sm text-gray-600">
-              ※ 기본 도선료와 최저 도선료를 적용한 계산 결과입니다. 접·이안 및
-              기타 할증은 아래 최종 도선료 계산에 반영됩니다.
-            </p>
-          </div>
-        )}
-        {berthingSurchargeResult && activeTab === "PILOTAGE" && (
-          <div className="mt-4 rounded-lg border p-5">
-            <h3 className="mb-4 text-lg font-bold">
-              Berthing / Unberthing Surcharge (접·이안 가산료)
-            </h3>
-
-            <div className="space-y-2">
-              <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-                <span>Arrival Berthing (입항 접안)</span>
-                <span className="shrink-0 text-right"></span>
-                <span>
-                  {formatKRW(berthingSurchargeResult.arrival.surcharge)}
-                </span>
-              </div>
-
-              <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-                <span>Departure Unberthing (출항 이안)</span>
-                <span className="shrink-0 text-right"></span>
-                <span>
-                  {formatKRW(berthingSurchargeResult.departure.surcharge)}
-                </span>
-              </div>
-
-              <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-                <span>Total Surcharge (가산료 합계)</span>
-                <span className="shrink-0 text-right"></span>
-                <span>{formatKRW(berthingSurchargeResult.totalSurcharge)}</span>
-              </div>
-            </div>
-
-            <p className="mt-3 text-sm text-gray-500">
-              ※ 접·이안 가산료는 최종 도선료에 포함되어 있으며, 별도로 중복
-              합산하지 않습니다.
-            </p>
-          </div>
-        )}
-        {finalPilotageResult && activeTab === "PILOTAGE" && (
-          <div className="mt-4 rounded-lg border border-blue-300 bg-blue-50 p-5">
-            <h3 className="mb-4 text-lg font-bold">
-              Pilotage Charges Summary (도선료 계산 요약)
-            </h3>
-
-            <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-              <span>Arrival Pilotage (입항)</span>
-              <span className="shrink-0 text-right"></span>
-              <span>{formatKRW(finalPilotageResult.arrival.finalFee)}</span>
-            </div>
-
-            <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-              <span>Departure Pilotage (출항)</span>
-              <span className="shrink-0 text-right"></span>
-              <span>{formatKRW(finalPilotageResult.departure.finalFee)}</span>
-            </div>
-            {/* 야간·공휴일 할증 내역 */}
-            <div className="space-y-2 border-b pb-4">
-              <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-                <span>Arrival Time Surcharge (입항 시간 할증)</span>
-                <span className="shrink-0 text-right"></span>
-                <span>
-                  {formatKRW(finalPilotageResult.arrivalTime.surcharge)}
-                </span>
-              </div>
-
-              <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-                <span>Departure Time Surcharge (출항 시간 할증)</span>
-                <span className="shrink-0 text-right"></span>
-                <span>
-                  {formatKRW(finalPilotageResult.departureTime.surcharge)}
-                </span>
-              </div>
-            </div>
-            <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-              <span>Arrival Dangerous Cargo Surcharge (입항 위험물 할증)</span>
-              <span className="shrink-0 text-right"></span>
-              <span>
-                {formatKRW(finalPilotageResult.arrivalDangerous.surcharge)}
-              </span>
-            </div>
-
-            <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-              <span>
-                Departure Dangerous Cargo Surcharge (출항 위험물 할증)
-              </span>
-              <span className="shrink-0 text-right"></span>
-              <span>
-                {formatKRW(finalPilotageResult.departureDangerous.surcharge)}
-              </span>
-            </div>
-
-            <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-              <span>Round Trip Total (왕복 합계)</span>
-              <span className="shrink-0 text-right"></span>
-              <span>
-                {formatKRW(finalPilotageResult.totalFinalPilotageFee)}
-              </span>
-            </div>
-
-            <p className="mt-3 text-sm text-gray-600">
-              ※ 기본 도선료, 접·이안 가산료 및 각종 할증을 반영한 최종
-              도선료입니다. 최종 예상항비에 포함되어 있습니다.
-            </p>
-          </div>
-        )}
-        {pilotBoatResult && activeTab === "PILOT_BOAT" && (
-          <div className="mt-6 rounded-xl border border-blue-300 bg-blue-50 p-6">
-            <h3 className="text-xl font-bold mb-4">
-              Pilot Boat Charges Summary (도선선료 계산 결과)
-            </h3>
-
-            <div className="flex justify-between py-2">
-              <span>Arrival Base Fee (입항 기본 도선선료)</span>
-              <span>{formatKRW(pilotBoatResult.arrival.baseFee)}</span>
-            </div>
-
-            <div className="flex justify-between py-2">
-              <span>Arrival Surcharge (입항 시간 할증)</span>
-              <span>{formatKRW(pilotBoatResult.arrival.surcharge)}</span>
-            </div>
-            {pilotBoatResult.arrival.carServiceFee > 0 && (
-              <div className="flex justify-between py-2">
-                <span>Arrival CAR SERVICE (입항 차량 서비스료)</span>
-                <span>{formatKRW(pilotBoatResult.arrival.carServiceFee)}</span>
               </div>
             )}
-            <div className="flex justify-between py-2 font-semibold">
-              <span>Arrival Total (입항 도선선료)</span>
-              <span>{formatKRW(pilotBoatResult.arrival.finalFee)}</span>
-            </div>
+            {pilotageResult && activeTab === "PILOTAGE" && (
+              <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-5">
+                <h3 className="mb-4 text-lg font-bold">
+                  Pilotage Calculation (도선료 기본 산식)
+                </h3>
 
-            <hr className="my-3" />
+                <div className="space-y-2">
+                  <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                    <span>Arrival Pilotage (입항 도선료)</span>
+                    <span className="shrink-0 text-right"></span>
+                    <span>{formatKRW(pilotageResult.arrival.pilotageFee)}</span>
+                  </div>
 
-            <div className="flex justify-between py-2">
-              <span>Departure Base Fee (출항 기본 도선선료)</span>
-              <span>{formatKRW(pilotBoatResult.departure.baseFee)}</span>
-            </div>
+                  <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                    <span>Departure Pilotage (출항 도선료)</span>
+                    <span className="shrink-0 text-right"></span>
+                    <span>
+                      {formatKRW(pilotageResult.departure.pilotageFee)}
+                    </span>
+                  </div>
 
-            <div className="flex justify-between py-2">
-              <span>Departure Surcharge (출항 시간 할증)</span>
-              <span>{formatKRW(pilotBoatResult.departure.surcharge)}</span>
-            </div>
-            {pilotBoatResult.departure.carServiceFee > 0 && (
-              <div className="flex justify-between py-2">
-                <span>Departure CAR SERVICE (출항 차량 서비스료)</span>
-                <span>
-                  {formatKRW(pilotBoatResult.departure.carServiceFee)}
-                </span>
+                  <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                    <span>Round Trip Pilotage (왕복 소계)</span>
+                    <span className="shrink-0 text-right"></span>
+                    <span>{formatKRW(pilotageResult.totalPilotageFee)}</span>
+                  </div>
+                </div>
+
+                <p className="mt-4 text-sm text-gray-600">
+                  ※ 기본 도선료와 최저 도선료를 적용한 계산 결과입니다. 접·이안
+                  및 기타 할증은 아래 최종 도선료 계산에 반영됩니다.
+                </p>
               </div>
             )}
+            {berthingSurchargeResult && activeTab === "PILOTAGE" && (
+              <div className="mt-4 rounded-lg border p-5">
+                <h3 className="mb-4 text-lg font-bold">
+                  Berthing / Unberthing Surcharge (접·이안 가산료)
+                </h3>
 
-            <div className="flex justify-between py-2 font-semibold">
-              <span>Departure Total (출항 도선선료)</span>
-              <span>{formatKRW(pilotBoatResult.departure.finalFee)}</span>
-            </div>
+                <div className="space-y-2">
+                  <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                    <span>Arrival Berthing (입항 접안)</span>
+                    <span className="shrink-0 text-right"></span>
+                    <span>
+                      {formatKRW(berthingSurchargeResult.arrival.surcharge)}
+                    </span>
+                  </div>
 
-            <hr className="my-3" />
+                  <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                    <span>Departure Unberthing (출항 이안)</span>
+                    <span className="shrink-0 text-right"></span>
+                    <span>
+                      {formatKRW(berthingSurchargeResult.departure.surcharge)}
+                    </span>
+                  </div>
 
-            <div className="flex justify-between py-2 text-lg font-bold">
-              <span>Round Trip Pilot Boat Fee (왕복 도선선료)</span>
-              <span>{formatKRW(pilotBoatResult.totalPilotBoatFee)}</span>
-            </div>
-          </div>
-        )}
-        {/* 예선료 상세 계산 결과 */}
-        {tugboatResult && activeTab === "TUGBOAT" && (
-          <div className="mt-6 rounded-xl border border-blue-300 bg-blue-50 p-6">
-            <h3 className="mb-4 text-xl font-bold">
-              Tugboat Charges Summary (예선료 계산 결과)
-            </h3>
+                  <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                    <span>Total Surcharge (가산료 합계)</span>
+                    <span className="shrink-0 text-right"></span>
+                    <span>
+                      {formatKRW(berthingSurchargeResult.totalSurcharge)}
+                    </span>
+                  </div>
+                </div>
 
-            {[
-              ["Arrival (입항)", tugboatResult.arrival],
-              ["Departure (출항)", tugboatResult.departure],
-            ].map(([label, works]) => (
-              <div key={label} className="mb-5">
-                <h4 className="mb-3 border-b pb-2 font-semibold">{label}</h4>
+                <p className="mt-3 text-sm text-gray-500">
+                  ※ 접·이안 가산료는 최종 도선료에 포함되어 있으며, 별도로 중복
+                  합산하지 않습니다.
+                </p>
+              </div>
+            )}
+            {finalPilotageResult && activeTab === "PILOTAGE" && (
+              <div className="mt-4 rounded-lg border border-blue-300 bg-blue-50 p-5">
+                <h3 className="mb-4 text-lg font-bold">
+                  Pilotage Charges Summary (도선료 계산 요약)
+                </h3>
 
-                {works.map((work, index) => (
-                  <div
-                    key={`${work.type}-${index}`}
-                    className="mb-4 rounded bg-white p-4"
-                  >
-                    <div className="mb-2 font-medium">
-                      {work.type === "GATE"
-                        ? "Gate (갑문)"
-                        : work.type === "BERTHING"
-                          ? "Berthing (접안)"
-                          : "Unberthing (이안)"}
-                    </div>
+                <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                  <span>Arrival Pilotage (입항)</span>
+                  <span className="shrink-0 text-right"></span>
+                  <span>{formatKRW(finalPilotageResult.arrival.finalFee)}</span>
+                </div>
 
-                    <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span>Required Horsepower (기준 마력)</span>
-                      <span className="shrink-0 text-right"></span>
-                      <span>{work.requiredTotalHp.toLocaleString()} HP</span>
-                    </div>
+                <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                  <span>Departure Pilotage (출항)</span>
+                  <span className="shrink-0 text-right"></span>
+                  <span>
+                    {formatKRW(finalPilotageResult.departure.finalFee)}
+                  </span>
+                </div>
+                {/* 야간·공휴일 할증 내역 */}
+                <div className="space-y-2 border-b pb-4">
+                  <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                    <span>Arrival Time Surcharge (입항 시간 할증)</span>
+                    <span className="shrink-0 text-right"></span>
+                    <span>
+                      {formatKRW(finalPilotageResult.arrivalTime.surcharge)}
+                    </span>
+                  </div>
 
-                    <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span>Tugboats (예선 척수)</span>
-                      <span className="shrink-0 text-right"></span>
-                      <span>{work.requiredCount}척</span>
-                    </div>
-                    {/* 예선별 추정 마력 및 기본요금 */}
-                    <div className="my-3 rounded border bg-slate-50 p-3">
-                      <p className="mb-2 text-sm font-semibold text-gray-700">
-                        Estimated Tugboat Allocation (예선별 추정 배분)
-                      </p>
+                  <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                    <span>Departure Time Surcharge (출항 시간 할증)</span>
+                    <span className="shrink-0 text-right"></span>
+                    <span>
+                      {formatKRW(finalPilotageResult.departureTime.surcharge)}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                  <span>
+                    Arrival Dangerous Cargo Surcharge (입항 위험물 할증)
+                  </span>
+                  <span className="shrink-0 text-right"></span>
+                  <span>
+                    {formatKRW(finalPilotageResult.arrivalDangerous.surcharge)}
+                  </span>
+                </div>
 
-                      {work.tugboats.map((tugboat) => (
-                        <div
-                          key={tugboat.tugboatNo}
-                          className="flex justify-between gap-3 py-1 text-sm text-gray-600"
-                        >
-                          <span>
-                            Tugboat {tugboat.tugboatNo} —{" "}
-                            {tugboat.horsepower.toLocaleString()} HP
-                          </span>
+                <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                  <span>
+                    Departure Dangerous Cargo Surcharge (출항 위험물 할증)
+                  </span>
+                  <span className="shrink-0 text-right"></span>
+                  <span>
+                    {formatKRW(
+                      finalPilotageResult.departureDangerous.surcharge,
+                    )}
+                  </span>
+                </div>
 
-                          <span>{formatKRW(tugboat.baseFee)}</span>
+                <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                  <span>Round Trip Total (왕복 합계)</span>
+                  <span className="shrink-0 text-right"></span>
+                  <span>
+                    {formatKRW(finalPilotageResult.totalFinalPilotageFee)}
+                  </span>
+                </div>
+
+                <p className="mt-3 text-sm text-gray-600">
+                  ※ 기본 도선료, 접·이안 가산료 및 각종 할증을 반영한 최종
+                  도선료입니다. 최종 예상항비에 포함되어 있습니다.
+                </p>
+              </div>
+            )}
+            {pilotBoatResult && activeTab === "PILOT_BOAT" && (
+              <div className="mt-6 rounded-xl border border-blue-300 bg-blue-50 p-6">
+                <h3 className="text-xl font-bold mb-4">
+                  Pilot Boat Charges Summary (도선선료 계산 결과)
+                </h3>
+
+                <div className="flex justify-between py-2">
+                  <span>Arrival Base Fee (입항 기본 도선선료)</span>
+                  <span>{formatKRW(pilotBoatResult.arrival.baseFee)}</span>
+                </div>
+
+                <div className="flex justify-between py-2">
+                  <span>Arrival Surcharge (입항 시간 할증)</span>
+                  <span>{formatKRW(pilotBoatResult.arrival.surcharge)}</span>
+                </div>
+                {pilotBoatResult.arrival.carServiceFee > 0 && (
+                  <div className="flex justify-between py-2">
+                    <span>Arrival CAR SERVICE (입항 차량 서비스료)</span>
+                    <span>
+                      {formatKRW(pilotBoatResult.arrival.carServiceFee)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between py-2 font-semibold">
+                  <span>Arrival Total (입항 도선선료)</span>
+                  <span>{formatKRW(pilotBoatResult.arrival.finalFee)}</span>
+                </div>
+
+                <hr className="my-3" />
+
+                <div className="flex justify-between py-2">
+                  <span>Departure Base Fee (출항 기본 도선선료)</span>
+                  <span>{formatKRW(pilotBoatResult.departure.baseFee)}</span>
+                </div>
+
+                <div className="flex justify-between py-2">
+                  <span>Departure Surcharge (출항 시간 할증)</span>
+                  <span>{formatKRW(pilotBoatResult.departure.surcharge)}</span>
+                </div>
+                {pilotBoatResult.departure.carServiceFee > 0 && (
+                  <div className="flex justify-between py-2">
+                    <span>Departure CAR SERVICE (출항 차량 서비스료)</span>
+                    <span>
+                      {formatKRW(pilotBoatResult.departure.carServiceFee)}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex justify-between py-2 font-semibold">
+                  <span>Departure Total (출항 도선선료)</span>
+                  <span>{formatKRW(pilotBoatResult.departure.finalFee)}</span>
+                </div>
+
+                <hr className="my-3" />
+
+                <div className="flex justify-between py-2 text-lg font-bold">
+                  <span>Round Trip Pilot Boat Fee (왕복 도선선료)</span>
+                  <span>{formatKRW(pilotBoatResult.totalPilotBoatFee)}</span>
+                </div>
+              </div>
+            )}
+            {/* 예선료 상세 계산 결과 */}
+            {tugboatResult && activeTab === "TUGBOAT" && (
+              <div className="mt-6 rounded-xl border border-blue-300 bg-blue-50 p-6">
+                <h3 className="mb-4 text-xl font-bold">
+                  Tugboat Charges Summary (예선료 계산 결과)
+                </h3>
+
+                {[
+                  ["Arrival (입항)", tugboatResult.arrival],
+                  ["Departure (출항)", tugboatResult.departure],
+                ].map(([label, works]) => (
+                  <div key={label} className="mb-5">
+                    <h4 className="mb-3 border-b pb-2 font-semibold">
+                      {label}
+                    </h4>
+
+                    {works.map((work, index) => (
+                      <div
+                        key={`${work.type}-${index}`}
+                        className="mb-4 rounded bg-white p-4"
+                      >
+                        <div className="mb-2 font-medium">
+                          {work.type === "GATE"
+                            ? "Gate (갑문)"
+                            : work.type === "BERTHING"
+                              ? "Berthing (접안)"
+                              : "Unberthing (이안)"}
                         </div>
-                      ))}
-                    </div>
 
-                    <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span>Operation Time (사용시간)</span>
-                      <span className="shrink-0 text-right">
-                        {work.minutes}분
+                        <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                          <span>Required Horsepower (기준 마력)</span>
+                          <span className="shrink-0 text-right"></span>
+                          <span>
+                            {work.requiredTotalHp.toLocaleString()} HP
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                          <span>Tugboats (예선 척수)</span>
+                          <span className="shrink-0 text-right"></span>
+                          <span>{work.requiredCount}척</span>
+                        </div>
+                        {/* 예선별 추정 마력 및 기본요금 */}
+                        <div className="my-3 rounded border bg-slate-50 p-3">
+                          <p className="mb-2 text-sm font-semibold text-gray-700">
+                            Estimated Tugboat Allocation (예선별 추정 배분)
+                          </p>
+
+                          {work.tugboats.map((tugboat) => (
+                            <div
+                              key={tugboat.tugboatNo}
+                              className="flex justify-between gap-3 py-1 text-sm text-gray-600"
+                            >
+                              <span>
+                                Tugboat {tugboat.tugboatNo} —{" "}
+                                {tugboat.horsepower.toLocaleString()} HP
+                              </span>
+
+                              <span>{formatKRW(tugboat.baseFee)}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                          <span>Operation Time (사용시간)</span>
+                          <span className="shrink-0 text-right">
+                            {work.minutes}분
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                          <span>Base Fee (기본요금 합계)</span>
+                          <span className="shrink-0 text-right"></span>
+                          <span>{formatKRW(work.totalBaseFee)}</span>
+                        </div>
+
+                        <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                          <span>Time Applied Fee (시간 적용 요금)</span>
+                          <span className="shrink-0 text-right"></span>
+                          <span>{formatKRW(work.timeFee)}</span>
+                        </div>
+
+                        <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                          <span>Surcharge (할증료)</span>
+                          <span className="shrink-0 text-right"></span>
+                          <span>{formatKRW(work.totalSurcharge)}</span>
+                        </div>
+
+                        <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
+                          <span>Work Total (작업별 합계)</span>
+                          <span className="shrink-0 text-right"></span>
+                          <span>{formatKRW(work.totalFee)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+
+                <div className="flex justify-between border-t pt-4 text-lg font-bold">
+                  <span>Round Trip Tugboat Fee (왕복 예선료)</span>
+                  <span>{formatKRW(tugboatResult.totalTugboatFee)}</span>
+                </div>
+
+                <p className="mt-4 text-sm text-gray-600">
+                  ※ GT별 예선 사용 기준과 추정 마력 배분을 적용한 예상
+                  금액입니다. 실제 예선 배정 및 사용시간에 따라 최종 요금은
+                  달라질 수 있습니다.
+                </p>
+              </div>
+            )}
+
+            {/* 정박료 계산 화면 */}
+            {activeTab === "ANCHORAGE" && (
+              <div className="mt-6 rounded-xl border border-blue-300 bg-blue-50 p-5">
+                <h3 className="mb-4 text-xl font-bold text-blue-900">
+                  Anchorage Dues Calculator (정박료 계산)
+                </h3>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block font-medium">
+                      Anchorage Start (정박 시작)
+                      <span className="ml-1 text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="start"
+                      value={anchorage.start}
+                      onChange={(e) =>
+                        setAnchorage((prev) => ({
+                          ...prev,
+                          start: formatDateTime(e.target.value),
+                        }))
+                      }
+                      placeholder="YYYY-MM-DD HH:mm"
+                      maxLength={16}
+                      inputMode="numeric"
+                      className="w-full min-w-0 rounded border p-3"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block font-medium">
+                      Anchorage End (정박 종료)
+                      <span className="ml-1 text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="end"
+                      value={anchorage.end}
+                      onChange={(e) =>
+                        setAnchorage((prev) => ({
+                          ...prev,
+                          end: formatDateTime(e.target.value),
+                        }))
+                      }
+                      placeholder="YYYY-MM-DD HH:mm"
+                      maxLength={16}
+                      inputMode="numeric"
+                      className="w-full min-w-0 rounded border p-3"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block font-medium">
+                      Anchorage Purpose (정박 목적)
+                    </label>
+                    <select
+                      value={anchorage.purpose}
+                      onChange={(e) =>
+                        setAnchorage((prev) => ({
+                          ...prev,
+                          purpose: e.target.value,
+                        }))
+                      }
+                      className="w-full rounded border p-3"
+                    >
+                      <option value="GENERAL">
+                        General Anchorage (일반 정박)
+                      </option>
+                      <option value="BUNKERING">
+                        Bunkering Only (급유 목적)
+                      </option>
+                    </select>
+                  </div>
+
+                  {anchorage.purpose === "BUNKERING" && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={anchorage.hasEdiApproval}
+                        onChange={(e) =>
+                          setAnchorage((prev) => ({
+                            ...prev,
+                            hasEdiApproval: e.target.checked,
+                          }))
+                        }
+                      />
+                      <label className="font-medium">
+                        EDI Approval (사전 정박지 사용허가)
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            {activeTab === "ANCHORAGE" && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleCalculateAnchorage}
+                  className="mt-5 w-full rounded-lg bg-blue-900 px-4 py-3 font-semibold text-white hover:bg-blue-800"
+                >
+                  Calculate Anchorage Dues (정박료 계산)
+                </button>
+
+                {anchorageResult && (
+                  <div className="mt-5 rounded-lg border bg-white p-4">
+                    <h4 className="mb-4 font-bold">
+                      Anchorage Charges Summary
+                    </h4>
+
+                    <div className="flex justify-between py-2">
+                      <span>Total Anchorage Hours(사용시간)</span>
+                      <span>
+                        {formatAnchorageTime(anchorageResult.anchorageHours)}
                       </span>
                     </div>
 
-                    <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span>Base Fee (기본요금 합계)</span>
-                      <span className="shrink-0 text-right"></span>
-                      <span>{formatKRW(work.totalBaseFee)}</span>
+                    <div className="flex justify-between py-2">
+                      <span>Basic Dues (최초 12시간)</span>
+                      <span>{formatKRW(anchorageResult.basicFee)}</span>
                     </div>
 
-                    <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span>Time Applied Fee (시간 적용 요금)</span>
-                      <span className="shrink-0 text-right"></span>
-                      <span>{formatKRW(work.timeFee)}</span>
+                    <div className="flex justify-between py-2">
+                      <span>
+                        Extra Dues (초과 {anchorageResult.extraHours}시간 적용)
+                      </span>
+                      <span>{formatKRW(anchorageResult.extraFee)}</span>
+                    </div>
+                    {anchorageResult.isExempt && (
+                      <div className="flex justify-between py-2 text-green-700">
+                        <span>Exemption (벙커링 면제 금액)</span>
+                        <span>- {formatKRW(anchorageResult.normalFee)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between border-t pt-3 font-bold">
+                      <span>Estimated Anchorage Dues</span>
+                      <span className="text-blue-900">
+                        {formatKRW(anchorageResult.anchorageFee)}
+                      </span>
                     </div>
 
-                    <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span>Surcharge (할증료)</span>
-                      <span className="shrink-0 text-right"></span>
-                      <span>{formatKRW(work.totalSurcharge)}</span>
-                    </div>
+                    {anchorageResult.isExempt && (
+                      <p className="mt-3 text-sm text-green-700">
+                        ※ 벙커링 목적 및 사전 EDI 허가에 따른 정박료 면제가
+                        적용되었습니다.
+                      </p>
+                    )}
 
-                    <div className="flex flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span>Work Total (작업별 합계)</span>
-                      <span className="shrink-0 text-right"></span>
-                      <span>{formatKRW(work.totalFee)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ))}
-
-            <div className="flex justify-between border-t pt-4 text-lg font-bold">
-              <span>Round Trip Tugboat Fee (왕복 예선료)</span>
-              <span>{formatKRW(tugboatResult.totalTugboatFee)}</span>
-            </div>
-
-            <p className="mt-4 text-sm text-gray-600">
-              ※ GT별 예선 사용 기준과 추정 마력 배분을 적용한 예상 금액입니다.
-              실제 예선 배정 및 사용시간에 따라 최종 요금은 달라질 수 있습니다.
-            </p>
-          </div>
-        )}
-
-        {/* 정박료 계산 화면 */}
-        {activeTab === "ANCHORAGE" && (
-          <div className="mt-6 rounded-xl border border-blue-300 bg-blue-50 p-5">
-            <h3 className="mb-4 text-xl font-bold text-blue-900">
-              Anchorage Dues Calculator (정박료 계산)
-            </h3>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label className="mb-1 block font-medium">
-                  Anchorage Start (정박 시작)
-                  <span className="ml-1 text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="start"
-                  value={anchorage.start}
-                  onChange={(e) =>
-                    setAnchorage((prev) => ({
-                      ...prev,
-                      start: formatDateTime(e.target.value),
-                    }))
-                  }
-                  placeholder="YYYY-MM-DD HH:mm"
-                  maxLength={16}
-                  inputMode="numeric"
-                  className="w-full min-w-0 rounded border p-3"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block font-medium">
-                  Anchorage End (정박 종료)
-                  <span className="ml-1 text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="end"
-                  value={anchorage.end}
-                  onChange={(e) =>
-                    setAnchorage((prev) => ({
-                      ...prev,
-                      end: formatDateTime(e.target.value),
-                    }))
-                  }
-                  placeholder="YYYY-MM-DD HH:mm"
-                  maxLength={16}
-                  inputMode="numeric"
-                  className="w-full min-w-0 rounded border p-3"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block font-medium">
-                  Anchorage Purpose (정박 목적)
-                </label>
-                <select
-                  value={anchorage.purpose}
-                  onChange={(e) =>
-                    setAnchorage((prev) => ({
-                      ...prev,
-                      purpose: e.target.value,
-                    }))
-                  }
-                  className="w-full rounded border p-3"
-                >
-                  <option value="GENERAL">General Anchorage (일반 정박)</option>
-                  <option value="BUNKERING">Bunkering Only (급유 목적)</option>
-                </select>
-              </div>
-
-              {anchorage.purpose === "BUNKERING" && (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={anchorage.hasEdiApproval}
-                    onChange={(e) =>
-                      setAnchorage((prev) => ({
-                        ...prev,
-                        hasEdiApproval: e.target.checked,
-                      }))
-                    }
-                  />
-                  <label className="font-medium">
-                    EDI Approval (사전 정박지 사용허가)
-                  </label>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-        {activeTab === "ANCHORAGE" && (
-          <>
-            <button
-              type="button"
-              onClick={handleCalculateAnchorage}
-              className="mt-5 w-full rounded-lg bg-blue-900 px-4 py-3 font-semibold text-white hover:bg-blue-800"
-            >
-              Calculate Anchorage Dues (정박료 계산)
-            </button>
-
-            {anchorageResult && (
-              <div className="mt-5 rounded-lg border bg-white p-4">
-                <h4 className="mb-4 font-bold">Anchorage Charges Summary</h4>
-
-                <div className="flex justify-between py-2">
-                  <span>Total Anchorage Hours(사용시간)</span>
-                  <span>
-                    {formatAnchorageTime(anchorageResult.anchorageHours)}
-                  </span>
-                </div>
-
-                <div className="flex justify-between py-2">
-                  <span>Basic Dues (최초 12시간)</span>
-                  <span>{formatKRW(anchorageResult.basicFee)}</span>
-                </div>
-
-                <div className="flex justify-between py-2">
-                  <span>
-                    Extra Dues (초과 {anchorageResult.extraHours}시간 적용)
-                  </span>
-                  <span>{formatKRW(anchorageResult.extraFee)}</span>
-                </div>
-                {anchorageResult.isExempt && (
-                  <div className="flex justify-between py-2 text-green-700">
-                    <span>Exemption (벙커링 면제 금액)</span>
-                    <span>- {formatKRW(anchorageResult.normalFee)}</span>
+                    {anchorageResult.retroactivePortDuesRequired && (
+                      <p className="mt-3 text-sm text-red-600">
+                        ※ 24시간 초과로 면제가 취소되었습니다. 선박입출항료 소급
+                        부과가 필요합니다.
+                      </p>
+                    )}
                   </div>
                 )}
-                <div className="flex justify-between border-t pt-3 font-bold">
-                  <span>Estimated Anchorage Dues</span>
-                  <span className="text-blue-900">
-                    {formatKRW(anchorageResult.anchorageFee)}
-                  </span>
-                </div>
-
-                {anchorageResult.isExempt && (
-                  <p className="mt-3 text-sm text-green-700">
-                    ※ 벙커링 목적 및 사전 EDI 허가에 따른 정박료 면제가
-                    적용되었습니다.
-                  </p>
-                )}
-
-                {anchorageResult.retroactivePortDuesRequired && (
-                  <p className="mt-3 text-sm text-red-600">
-                    ※ 24시간 초과로 면제가 취소되었습니다. 선박입출항료 소급
-                    부과가 필요합니다.
-                  </p>
-                )}
-              </div>
+              </>
             )}
           </>
         )}
