@@ -128,9 +128,9 @@ export default function FuelCalculator() {
 
   return (
     <div>
-      <h2 className="mb-2 text-xl font-bold text-blue-900">
+      <h1 className="mb-2 text-2xl font-bold text-blue-900">
         Bulk Carrier Fuel Estimator
-      </h2>
+      </h1>
 
       <p className="mb-6 text-sm text-gray-500">
         벌크선 항해·정박·하역 연료 소비량 및 예상 연료비 계산
